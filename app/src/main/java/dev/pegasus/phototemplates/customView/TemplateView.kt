@@ -50,6 +50,7 @@ class TemplateView : View {
         // Measure the view based on the template's size.
         val width = MeasureSpec.makeMeasureSpec(templateRect.width().toInt(), MeasureSpec.EXACTLY)
         val height = MeasureSpec.makeMeasureSpec(templateRect.height().toInt(), MeasureSpec.EXACTLY)
+
         setMeasuredDimension(width, height)
     }
 
@@ -107,9 +108,7 @@ class TemplateView : View {
                 }
             }
 
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                isDragging = false
-            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> isDragging = false
         }
 
         // Consume the event to indicate that it's been handled.
