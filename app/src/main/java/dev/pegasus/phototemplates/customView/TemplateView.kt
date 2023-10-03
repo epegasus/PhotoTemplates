@@ -1,5 +1,6 @@
 package dev.pegasus.phototemplates.customView
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -7,15 +8,25 @@ import android.graphics.Canvas
 import android.graphics.RectF
 import android.graphics.drawable.BitmapDrawable
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import androidx.core.graphics.toRect
 import dev.pegasus.phototemplates.R
+import kotlin.math.log
 
 class TemplateView : View {
 
-    // The background template image (1080x1080 in your example).
-    private var templateBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.img_bg)
+    // Background Template
+    private var templateBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.birthday_frame_one)
+    // Taking Device Screen sizes to scale background template, if greater
+    private val screenWidth = resources.displayMetrics.widthPixels
+    private val screenHeight = resources.displayMetrics.heightPixels
+    private val scaleX = screenWidth.toFloat() / templateBitmap.width
+    private val scaleY = screenHeight.toFloat() / templateBitmap.height
+    private val scale = minOf(scaleX, scaleY)
+    // Our scaled bitmap (according to the device screen)
+    private val scaledBitmap = Bitmap.createScaledBitmap(templateBitmap, (templateBitmap.width * scale).toInt(), (templateBitmap.height * scale).toInt(), true)
 
     // The selected image to be positioned within the template.
     private var selectedImageBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.img_pic)
@@ -32,27 +43,44 @@ class TemplateView : View {
     private var isDragging = false
 
     constructor(context: Context) : super(context)
-
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
-
     constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
 
     init {
         // Set up initial positions and sizes for the template and selected image.
-        imageRect.set(300F, 450F, 800F, 750F)
-        imageRectFix.set(300F, 450F, 800F, 750F)
+        imageRect.set(495F, 268F, 1000F, 1100F)
+        imageRectFix.set(495F, 268F, 1000F, 1100F)
 
         // Set the view to be clickable, so it can receive touch events.
         isClickable = true
+        isFocusable = true
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        // Measure the view based on the template's size.
-        val width = MeasureSpec.makeMeasureSpec(templateRect.width().toInt(), MeasureSpec.EXACTLY)
-        val height = MeasureSpec.makeMeasureSpec(templateRect.height().toInt(), MeasureSpec.EXACTLY)
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
 
-        setMeasuredDimension(width, height)
+        val widthMode = MeasureSpec.getMode(widthMeasureSpec)
+        val heightMode = MeasureSpec.getMode(heightMeasureSpec)
+        val viewWidth = MeasureSpec.getSize(widthMeasureSpec)
+        val viewHeight = MeasureSpec.getSize(heightMeasureSpec)
+
+        val desiredWidth = when(widthMode){
+            MeasureSpec.EXACTLY -> viewWidth
+            MeasureSpec.AT_MOST -> MeasureSpec.makeMeasureSpec(scaledBitmap.width, MeasureSpec.AT_MOST)
+            MeasureSpec.UNSPECIFIED ->  MeasureSpec.makeMeasureSpec(scaledBitmap.width, MeasureSpec.UNSPECIFIED)
+            else -> viewWidth
+        }
+
+        val desiredHeight = when(heightMode){
+            MeasureSpec.EXACTLY -> viewHeight
+            MeasureSpec.AT_MOST -> MeasureSpec.makeMeasureSpec(scaledBitmap.height, MeasureSpec.AT_MOST)
+            MeasureSpec.UNSPECIFIED -> MeasureSpec.makeMeasureSpec(scaledBitmap.height, MeasureSpec.UNSPECIFIED)
+            else -> viewHeight
+        }
+
+        setMeasuredDimension(desiredWidth, desiredHeight)
     }
+
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -74,6 +102,7 @@ class TemplateView : View {
         selectedImageDrawable.draw(canvas)
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
@@ -94,11 +123,6 @@ class TemplateView : View {
                     // Ensure the selected image stays within the template bounds.
                     imageRect.offset(dx, dy)
 
-                    // If the image is going out of bounds, restrict it to the template.
-                    if (!templateRect.contains(imageRect)) {
-                        imageRect.offset(-dx, -dy)
-                    }
-
                     // Update the last touch position.
                     lastTouchX = event.x
                     lastTouchY = event.y
@@ -116,4 +140,5 @@ class TemplateView : View {
         // Consume the event to indicate that it's been handled.
         return true
     }
+
 }
