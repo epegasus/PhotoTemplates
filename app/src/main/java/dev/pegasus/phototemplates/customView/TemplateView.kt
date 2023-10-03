@@ -1,4 +1,4 @@
-package dev.pegasus.phototemplates
+package dev.pegasus.phototemplates.customView
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -10,8 +10,9 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import androidx.core.graphics.toRect
+import dev.pegasus.phototemplates.R
 
-class TemplateCustomizationView : View {
+class TemplateView : View {
 
     // The background template image (1080x1080 in your example).
     private var templateBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.img_bg)
@@ -38,8 +39,8 @@ class TemplateCustomizationView : View {
 
     init {
         // Set up initial positions and sizes for the template and selected image.
-        imageRect.set(300F, 450F, 600F, 750F)
-        imageRectFix.set(300F, 450F, 600F, 750F)
+        imageRect.set(300F, 450F, 800F, 750F)
+        imageRectFix.set(300F, 450F, 800F, 750F)
 
         // Set the view to be clickable, so it can receive touch events.
         isClickable = true

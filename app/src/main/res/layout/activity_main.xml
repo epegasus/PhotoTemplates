@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <dev.pegasus.phototemplates.TemplateCustomizationView
+    <dev.pegasus.phototemplates.customView.TemplateView
         android:id="@+id/templateCustomizationView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
