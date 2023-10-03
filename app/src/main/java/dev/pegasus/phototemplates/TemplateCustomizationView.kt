@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
-import android.graphics.Matrix
 import android.graphics.RectF
 import android.graphics.drawable.BitmapDrawable
 import android.util.AttributeSet
@@ -19,9 +18,7 @@ class TemplateCustomizationView : View {
 
     // The selected image to be positioned within the template.
     private var selectedImageBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.img_pic)
-
-    // Matrix to handle image transformations (e.g., translation).
-    private val matrix = Matrix()
+    private val selectedImageDrawable by lazy { BitmapDrawable(resources, selectedImageBitmap) }
 
     // Rectangles to define the boundaries of the template and selected image.
     private val templateRect = RectF()
@@ -40,12 +37,7 @@ class TemplateCustomizationView : View {
     constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
 
     init {
-        // Initialize your templateBitmap and selectedImageBitmap here.
-        // Example: templateBitmap = BitmapFactory.decodeResource(resources, R.drawable.template_image)
-        // Example: selectedImageBitmap = BitmapFactory.decodeResource(resources, R.drawable.selected_image)
-
         // Set up initial positions and sizes for the template and selected image.
-        templateRect.set(0F, 0F, 900F, 1200F)
         imageRect.set(300F, 450F, 600F, 750F)
         imageRectFix.set(300F, 450F, 600F, 750F)
 
@@ -60,35 +52,24 @@ class TemplateCustomizationView : View {
         setMeasuredDimension(width, height)
     }
 
-    private val selectedImageDrawable by lazy { BitmapDrawable(resources, selectedImageBitmap) }
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        templateRect.set(0F, 0F, w.toFloat(), h.toFloat())
+    }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
         // Draw the background template image.
         canvas.drawBitmap(templateBitmap, null, templateRect, null)
-        //canvas.drawBitmap(selectedImageBitmap, null, imageRect, null)
-
-        // Calculate the bounds for the selected image within the templateRect.
-        val imageLeft = (templateRect.left + imageRect.left).coerceAtLeast(templateRect.left)
-        val imageTop = (templateRect.top + imageRect.top).coerceAtLeast(templateRect.top)
-        val imageRight = (templateRect.left + imageRect.right).coerceAtMost(templateRect.right)
-        val imageBottom = (templateRect.top + imageRect.bottom).coerceAtMost(templateRect.bottom)
 
         // Set the bounds for the selected image drawable.
-        selectedImageDrawable.bounds = RectF(imageLeft, imageTop, imageRight, imageBottom).toRect()
+        selectedImageDrawable.bounds = imageRect.toRect()
 
         // Clip the drawing of the selected image to the template bounds.
         canvas.clipRect(imageRectFix)
 
-        canvas.concat(matrix)
         selectedImageDrawable.draw(canvas)
-        canvas.concat(matrix)
-
-
-
-        // Apply the matrix transformation to the selected image and draw it.
-        //canvas.drawBitmap(selectedImageBitmap, matrix, null)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -108,16 +89,11 @@ class TemplateCustomizationView : View {
                     val dx = event.x - lastTouchX
                     val dy = event.y - lastTouchY
 
-                    // Apply translation to the matrix to move the selected image.
-                    matrix.postTranslate(dx, dy)
-
                     // Ensure the selected image stays within the template bounds.
-                    //matrix.mapRect(imageRect)
                     imageRect.offset(dx, dy)
 
+                    // If the image is going out of bounds, restrict it to the template.
                     if (!templateRect.contains(imageRect)) {
-                        // If the image is going out of bounds, restrict it to the template.
-                        matrix.postTranslate(-dx, -dy)
                         imageRect.offset(-dx, -dy)
                     }
 
