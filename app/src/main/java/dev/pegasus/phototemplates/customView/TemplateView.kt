@@ -108,7 +108,9 @@ class TemplateView : View {
                 }
             }
 
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> isDragging = false
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                isDragging = false
+            }
         }
 
         // Consume the event to indicate that it's been handled.
