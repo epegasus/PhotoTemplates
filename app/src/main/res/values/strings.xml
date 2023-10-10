@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Photo Templates</string>
+    <string name="testing_imageview">Testing imageview</string>
 </resources>

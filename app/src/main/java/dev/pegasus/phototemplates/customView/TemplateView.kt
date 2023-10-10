@@ -5,254 +5,183 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.Matrix
 import android.graphics.RectF
 import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
-import android.widget.ImageView.ScaleType
 import androidx.core.graphics.toRect
 import dev.pegasus.phototemplates.R
-import kotlin.math.abs
 
-class TemplateView : View {
+class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : View(context, attrs, defStyleAttr) {
+
+    private var TAG: String = "TemplateView"
 
     // Background Template
-    private var templateBitmap: Bitmap? = BitmapFactory.decodeResource(resources, R.drawable.birthday_frame_one)
-
-    // The selected image to be positioned within the template.
-    private var selectedImageBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.img_pic)
-
-    // We will change our resources to drawables, so that bounds work correctly on it.
-    private val templateDrawable by lazy { BitmapDrawable(resources, templateBitmap) }
-    private val selectedImageDrawable by lazy { BitmapDrawable(resources, selectedImageBitmap) }
-
-    private var bgImageHeight: Int = templateDrawable.intrinsicHeight
-    private var bgImageWidth: Int = templateDrawable.intrinsicWidth
-
-    private val mScaleType: ScaleType? = null
-    private val mAdjustViewBounds = false
-    private var mMaxWidth = Int.MAX_VALUE
-    private var mMaxHeight = Int.MAX_VALUE
-
-    // Taking Device Screen sizes to scale background template, if greater
-    // private val screenWidth = resources.displayMetrics.widthPixels
-    // private val screenHeight = resources.displayMetrics.heightPixels
-    // private val scaleX = screenWidth.toFloat() / templateBitmap.width
-    // private val scaleY = screenHeight.toFloat() / templateBitmap.height
-    // private val scale = minOf(scaleX, scaleY)
-
-    // Our scaled bitmap (according to the device screen)
-    // private val scaledBitmap = Bitmap.createScaledBitmap(templateBitmap, (templateBitmap.width * scale).toInt(), (templateBitmap.height * scale).toInt(), true)
-
-    // To keep the background image aspect ratio, so that we always maintain the ratio
-    // private val bgImageAspectRatio: Float = (scaledBitmap.height / scaledBitmap.width).toFloat()
+    private var templateBitmap: Bitmap? = null
+    private var selectedImageBitmap: Bitmap? = null
+    private var mDrawable: Drawable? = null
 
     // Rectangles to define the boundaries of the template and selected image.
+    private val viewRect = RectF()
     private val templateRect = RectF()
     private val imageRect = RectF()
-    private val imageRectFix = RectF()
+    private var imageRectFix = RectF()
 
     // Variables to track touch events.
     private var lastTouchX = 0f
     private var lastTouchY = 0f
     private var isDragging = false
 
-    constructor(context: Context) : super(context)
-    constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
-    constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
+    // Using this matrix we will show the bg template according to the aspect ratio
+    private val matrix = Matrix()
+
+    private val deviceScreenWidth = resources.displayMetrics.widthPixels
+    private var aspectRatio: Float = 1.0f
+    private var isFirstTime = true
+
+    // Initialize a float array to hold the matrix values
+    private val matrixValues = FloatArray(9)
 
     init {
-        // Set up initial positions and sizes for the template and selected image.
-        imageRect.set(495F, 268F, 1000F, 1100F)
-        imageRectFix.set(495F, 268F, 1000F, 1100F)
+        setImageResource(R.drawable.img_bg, R.drawable.img_pic)
 
-        // Set the view to be clickable, so it can receive touch events.
         isClickable = true
         isFocusable = true
     }
 
-    private fun getMaxWidth() = mMaxWidth
-    private fun setMaxWidth(maxWidth: Int) {
-        mMaxWidth = maxWidth
-    }
-    private fun getMaxHeight() = mMaxHeight
-    private fun setMaxHeight(maxHeight: Int) {
-        mMaxHeight = maxHeight
+    fun setImageResource(templateId: Int, imageId: Int) {
+        templateBitmap = BitmapFactory.decodeResource(resources, templateId)
+        selectedImageBitmap = BitmapFactory.decodeResource(resources, imageId)
+        mDrawable = BitmapDrawable(resources, selectedImageBitmap)
+        requestLayout()
+        invalidate()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
 
-        var w = 0
-        var h = 0
-
-        val widthSpecMode = MeasureSpec.getMode(widthMeasureSpec)
-        val heightSpecMode = MeasureSpec.getMode(heightMeasureSpec)
-
-        // We are allowed to change the view's width
-        val resizeWidth = widthSpecMode != MeasureSpec.EXACTLY
-
-        // We are allowed to change the view's height
-        val resizeHeight = heightSpecMode != MeasureSpec.EXACTLY
-
-        w = bgImageWidth
-        h = bgImageHeight
-        if (w <= 0) w = 1
-        if (h <= 0) h = 1
-
-        // Desired aspect ratio of the view's contents (not including padding)
-        val desiredAspect = (w / h).toFloat()
-
-        var widthSize: Int
-        var heightSize: Int
-
-        if (resizeHeight || resizeWidth) {
-            /* If we get here, it means we want to resize to match the
-                drawables aspect ratio, and we have the freedom to change at
-                least one dimension.
-            */
-
-            // Get the max possible width given our constraints
-            widthSize = resolveAdjustedSize(w, mMaxWidth, widthMeasureSpec)
-
-            // Get the max possible height given our constraints
-            heightSize = resolveAdjustedSize(h, mMaxHeight, heightMeasureSpec)
-
-            if (desiredAspect != 0.0f) {
-                // See what our actual aspect ratio is
-                val actualAspect = (widthSize / heightSize).toFloat()
-                if (abs(actualAspect - desiredAspect) > 0.0000001) {
-                    var done = false
-                    // Try adjusting width to be proportional to height
-                    if (resizeWidth) {
-                        val newWidth = (desiredAspect * heightSize).toInt()
-                        // Allow the width to outgrow its original estimate if height is fixed.
-                        if (!resizeHeight /*&& !sCompatAdjustViewBounds*/) widthSize = resolveAdjustedSize(newWidth, mMaxWidth, widthMeasureSpec)
-                        if (newWidth <= widthSize) {
-                            widthSize = newWidth
-                            done = true
-                        }
-                    }
-                    // Try adjusting height to be proportional to width
-                    if (!done && resizeHeight) {
-                        val newHeight = (widthSize / desiredAspect).toInt()
-                        // Allow the height to outgrow its original estimate if width is fixed
-                        if (!resizeWidth /*&& !sCompatAdjustViewBounds*/) heightSize = resolveAdjustedSize(newHeight, mMaxHeight, heightMeasureSpec)
-                        if (newHeight <= heightSize) heightSize = newHeight
-                    }
-                }
-            }
-        } else {
-            /* We are either don't want to preserve the drawables aspect ratio,
-               or we are not allowed to change view dimensions. Just measure in
-               the normal way.
-            */
-
-            w = w.coerceAtLeast(suggestedMinimumWidth)
-            h = h.coerceAtLeast(suggestedMinimumHeight)
-
-            widthSize = resolveSizeAndState(w, widthMeasureSpec, 0)
-            heightSize = resolveSizeAndState(h, heightMeasureSpec, 0)
-        }
-
-        /*val widthMode = MeasureSpec.getMode(widthMeasureSpec)
+        val widthMode = MeasureSpec.getMode(widthMeasureSpec)
         val heightMode = MeasureSpec.getMode(heightMeasureSpec)
         val viewWidth = MeasureSpec.getSize(widthMeasureSpec)
         val viewHeight = MeasureSpec.getSize(heightMeasureSpec)
 
-        var desiredHeight: Int = 0
-        var desiredWidth: Int = 0
+        if (templateBitmap!!.width > 0) aspectRatio = templateBitmap!!.height.toFloat() / templateBitmap!!.width.toFloat()
 
-        when (widthMode) {
-            MeasureSpec.EXACTLY -> {
-                desiredWidth = viewWidth
-                desiredHeight = (viewWidth * bgImageAspectRatio).toInt()
+        val measuredWidth: Int
+        val measuredHeight: Int
+
+        if (widthMode == MeasureSpec.EXACTLY && heightMode == MeasureSpec.EXACTLY) {
+            // If both width and height are fixed (e.g., match_parent or specific dimensions)
+            measuredWidth = viewWidth
+            measuredHeight = viewHeight
+        } else if (widthMode == MeasureSpec.EXACTLY) {
+            // If width is fixed (e.g., match_parent or specific dimension)
+            measuredWidth = viewWidth
+            measuredHeight = (measuredWidth * aspectRatio).toInt()
+        } else if (heightMode == MeasureSpec.EXACTLY) {
+            // If height is fixed (e.g., match_parent or specific dimension)
+            measuredHeight = viewHeight
+            measuredWidth = (measuredHeight / aspectRatio).toInt()
+        } else {
+            // If both width and height are wrap_content
+            measuredWidth = if (suggestedMinimumWidth != 0) suggestedMinimumWidth else {
+                if (deviceScreenWidth > templateBitmap!!.width) templateBitmap!!.width else deviceScreenWidth
             }
-            MeasureSpec.AT_MOST, MeasureSpec.UNSPECIFIED -> {
-                desiredWidth = MeasureSpec.makeMeasureSpec(scaledBitmap.width, widthMode)
-            }
+            measuredHeight = (measuredWidth * aspectRatio).toInt()
         }
 
-        when (heightMode) {
-            MeasureSpec.EXACTLY -> {
-                desiredHeight = viewHeight
-                desiredWidth = (viewHeight / bgImageAspectRatio).toInt()
-            }
-            MeasureSpec.AT_MOST -> {
-                if (widthMode != MeasureSpec.EXACTLY) desiredHeight = MeasureSpec.makeMeasureSpec(scaledBitmap.height, heightMode)
-            }
-            MeasureSpec.UNSPECIFIED -> if (widthMode != MeasureSpec.EXACTLY) desiredHeight = MeasureSpec.makeMeasureSpec((scaledBitmap.height / bgImageAspectRatio).toInt(), heightMode)
-        }
-
-        when (widthMode) {
-            MeasureSpec.AT_MOST -> desiredWidth = MeasureSpec.makeMeasureSpec(scaledBitmap.width, MeasureSpec.AT_MOST)
-            MeasureSpec.UNSPECIFIED -> desiredWidth = MeasureSpec.makeMeasureSpec(scaledBitmap.width, MeasureSpec.UNSPECIFIED)
-        }
-
-        when (heightMode) {
-            MeasureSpec.AT_MOST -> desiredHeight = MeasureSpec.makeMeasureSpec(scaledBitmap.height, MeasureSpec.AT_MOST)
-            MeasureSpec.UNSPECIFIED -> desiredHeight = MeasureSpec.makeMeasureSpec(scaledBitmap.height, MeasureSpec.UNSPECIFIED)
-        }
-
-        when {
-            widthMode == MeasureSpec.EXACTLY -> {
-                desiredWidth = viewWidth
-                desiredHeight = (viewWidth * bgImageAspectRatio).toInt()
-            }
-            heightMode == MeasureSpec.EXACTLY -> {
-                desiredHeight = viewHeight
-                desiredWidth = (viewHeight / bgImageAspectRatio).toInt()
-            }
-        }*/
-
-        setMeasuredDimension(widthSize, heightSize)
+        setMeasuredDimension(measuredWidth, measuredHeight)
     }
 
-    private fun resolveAdjustedSize(desiredSize: Int, maxSize: Int, measureSpec: Int): Int {
-        var result = desiredSize
-        val specMode = MeasureSpec.getMode(measureSpec)
-        val specSize = MeasureSpec.getSize(measureSpec)
-        when (specMode) {
-            MeasureSpec.UNSPECIFIED -> {
-                /* Parent says we can be as big as we want. Just don't be larger
-                   than max size imposed on ourselves.
-                */
-                result = desiredSize.coerceAtMost(maxSize)
-            }
+    /*override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
 
-            MeasureSpec.AT_MOST -> {
-                // Parent says we can be as big as we want, up to specSize.
-                // Don't be larger than specSize, and don't be larger than
-                // the max size imposed on ourselves.
-                result = desiredSize.coerceAtMost(specSize).coerceAtMost(maxSize)
-            }
-            MeasureSpec.EXACTLY -> {
-                // No choice. Do what we are told.
-                result = specSize
-            }
+        // Draw the background template image.
+        templateBitmap?.let {
+            viewRect.set(0f, 0f, width.toFloat(), height.toFloat())
+            templateRect.set(0f, 0f, it.width.toFloat(), it.height.toFloat())
+            matrix.setRectToRect(templateRect, viewRect, Matrix.ScaleToFit.CENTER)
+            canvas.drawBitmap(it, matrix, null)
         }
-        return result
-    }
 
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        templateRect.set(0F, 0F, w.toFloat(), h.toFloat())
-    }
+        // Get the matrix values
+        val matrixValues = matrix.values()
+
+        // Calculate the transformed dimensions of the template bitmap
+        val transformedWidth = templateRect.width() * matrixValues[Matrix.MSCALE_X]
+        val transformedHeight = templateRect.height() * matrixValues[Matrix.MSCALE_Y]
+
+        // Calculate the center position of the transformed bitmap
+        val centerX = (width.toFloat() - transformedWidth) / 2f
+        val centerY = (height.toFloat() - transformedHeight) / 2f
+
+        // Calculate the size and position of imageRect based on the transformation
+        val imageRectLeft = centerX - (selectedImageBitmap!!.width / 2)
+        val imageRectTop = centerY - (selectedImageBitmap!!.height / 2)
+        val imageRectRight = centerX + (selectedImageBitmap!!.width / 2)
+        val imageRectBottom = centerY + (selectedImageBitmap!!.height / 2)
+
+        // Update imageRect with the calculated values
+        imageRect.set(imageRectLeft, imageRectTop, imageRectRight, imageRectBottom)
+        imageRectFix.set(imageRect)
+
+        // Set the bounds for the selected image drawable.
+        mDrawable!!.bounds = imageRect.toRect()
+
+        // Clip the drawing of the selected image to the template bounds.
+        canvas.clipRect(imageRectFix)
+
+        // Draw the selected image
+        mDrawable!!.draw(canvas)
+    }*/
+
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
         // Draw the background template image.
-        canvas.drawBitmap(templateBitmap!!, null, templateRect, null)
+        templateBitmap?.let {
+            viewRect.set(0f, 0f, width.toFloat(), height.toFloat())
+            templateRect.set(0f, 0f, it.width.toFloat(), it.height.toFloat())
+            matrix.setRectToRect(templateRect, viewRect, Matrix.ScaleToFit.CENTER)
+            canvas.drawBitmap(it, matrix, null)
+        }
+
+        if (isFirstTime){
+            // Get the matrix values
+            matrix.getValues(matrixValues)
+
+            // Extract the scaling factors
+            val scaleX = matrixValues[Matrix.MSCALE_X]
+            val scaleY = matrixValues[Matrix.MSCALE_Y]
+
+            // Calculate the transformed dimensions of imageRect
+            val transformedWidth = templateRect.width() * scaleX
+            val transformedHeight = templateRect.height() * scaleY
+
+            // Calculate the left, top, right, and bottom values of the transformed imageRect
+            val transformedLeft = templateRect.left * scaleX
+            val transformedTop = templateRect.top * scaleY
+            val transformedRight = transformedLeft + transformedWidth
+            val transformedBottom = transformedTop + transformedHeight
+
+            imageRect.set(transformedLeft, transformedTop, transformedRight, transformedBottom)
+            imageRectFix.set(imageRect)
+
+            isFirstTime = false
+        }
 
         // Set the bounds for the selected image drawable.
-        selectedImageDrawable.bounds = imageRect.toRect()
+        mDrawable!!.bounds = imageRect.toRect()
 
         // Clip the drawing of the selected image to the template bounds.
         canvas.clipRect(imageRectFix)
 
-        selectedImageDrawable.draw(canvas)
+        mDrawable!!.draw(canvas)
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -293,4 +222,5 @@ class TemplateView : View {
         // Consume the event to indicate that it's been handled.
         return true
     }
+
 }
