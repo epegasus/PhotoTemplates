@@ -91,7 +91,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     /**
      * @property viewRect: "
      */
-    private var isFirstTime = true
     private var isZooming = false
     private var scaleFactor = 1.0f
 
@@ -100,7 +99,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      */
     override fun setBackgroundResource(@DrawableRes resId: Int) {
         backgroundBitmap = BitmapFactory.decodeResource(resources, resId)
-        requestLayout()
+        updateBackgroundRect()
         invalidate()
     }
 
@@ -110,7 +109,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             return
         }
         backgroundBitmap = bitmap
-        requestLayout()
+        updateBackgroundRect()
         invalidate()
     }
 
@@ -121,7 +120,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             return
         }
         backgroundBitmap = imageUtils.createBitmapFromDrawable(drawable)
-        requestLayout()
+        updateBackgroundRect()
         invalidate()
     }
 
@@ -131,7 +130,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     fun setImageResource(@DrawableRes imageId: Int) {
         imageDrawable = ContextCompat.getDrawable(context, imageId)
-        requestLayout()
         invalidate()
     }
 
@@ -141,7 +139,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             return
         }
         imageDrawable = imageUtils.createDrawableFromBitmap(bitmap)
-        requestLayout()
         invalidate()
     }
 
@@ -151,8 +148,12 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             return
         }
         imageDrawable = drawable
-        requestLayout()
         invalidate()
+    }
+
+    private fun updateBackgroundRect() {
+        backgroundBitmap?.let { backgroundRect.set(0f, 0f, it.width.toFloat(), it.height.toFloat()) }
+        matrix.setRectToRect(backgroundRect, viewRect, Matrix.ScaleToFit.CENTER)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -190,18 +191,26 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         setMeasuredDimension(measuredWidth, measuredHeight)
     }
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        imageRect.setEmpty()
+        viewRect.set(0f, 0f, width.toFloat(), height.toFloat())
+        matrix.setRectToRect(backgroundRect, viewRect, Matrix.ScaleToFit.CENTER)
+
+        // Farooq's work
+        // 1) update imageRect, imageRectFix, imageDrawable (sizing)
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
         // Draw the background template image.
         backgroundBitmap?.let {
-            viewRect.set(0f, 0f, width.toFloat(), height.toFloat())
-            backgroundRect.set(0f, 0f, it.width.toFloat(), it.height.toFloat())
-            matrix.setRectToRect(backgroundRect, viewRect, Matrix.ScaleToFit.CENTER)
+            Log.e(TAG, "TemplateView: onDraw: backgroundBitmap is null")
             canvas.drawBitmap(it, matrix, null)
         }
 
-        if (isFirstTime) {
+        if (imageRect.isEmpty) {
             // Get the matrix values
             matrix.getValues(matrixValues)
 
@@ -221,8 +230,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
             imageRect.set(transformedLeft, transformedTop, transformedRight, transformedBottom)
             imageRectFix.set(imageRect)
-
-            isFirstTime = false
         }
 
         if (isZooming) {
@@ -262,18 +269,21 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             imageRect.set(transformedLeft, transformedTop, transformedRight, transformedBottom)
         }
 
+        if (imageDrawable == null) {
+            Log.e(TAG, "TemplateView: onDraw: imageDrawable is null")
+        }
+
         // Set the bounds for the selected image drawable.
-        imageDrawable!!.bounds = imageRect.toRect()
+        imageDrawable?.bounds = imageRect.toRect()
 
         // Clip the drawing of the selected image to the template bounds.
         canvas.clipRect(imageRectFix)
 
-        imageDrawable!!.draw(canvas)
+        imageDrawable?.draw(canvas)
     }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-
         event.let { scaleGestureDetector.onTouchEvent(it) }
         // Check if a zoom gesture occurred and don't handle other touch events
         if (scaleGestureDetector.isInProgress) return true
