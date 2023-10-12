@@ -10,7 +10,6 @@ import android.graphics.RectF
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
@@ -21,48 +20,93 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     private var TAG: String = "TemplateView"
 
-    // Background Template
-    private var templateBitmap: Bitmap? = null
-    private var selectedImageBitmap: Bitmap? = null
-    private var mDrawable: Drawable? = null
+    /**
+     * @property backgroundBitmap: Bitmap of background of the template
+     * @property imageBitmap: Bitmap of the image provided by user
+     * @property imageDrawable: Drawable of the image provided by user (we need this ultimately)
+     */
 
-    // Rectangles to define the boundaries of the template and selected image.
+    private var backgroundBitmap: Bitmap? = null
+    private var imageBitmap: Bitmap? = null
+    private var imageDrawable: Drawable? = null
+
+    /**
+     * @property viewRect: It's the main view named as "TemplateView"
+     * @property backgroundRect: Coordinates of the background of current template
+     * @property imageRect: Coordinates of the user's image (mutable)
+     * @property imageRectFix: Coordinates of the user's image (immutable)
+     */
+
     private val viewRect = RectF()
-    private val templateRect = RectF()
+    private val backgroundRect = RectF()
     private val imageRect = RectF()
     private var imageRectFix = RectF()
 
-    // Variables to track touch events.
+    /**
+     * Variables to track touch events
+     * @property lastTouchX: Save x-axis of a touch inside a view"
+     * @property lastTouchY: Save y-axis of a touch inside a view"
+     * @property isDragging: Check if user's image can be drag-able (depends on touch events)"
+     */
+
     private var lastTouchX = 0f
     private var lastTouchY = 0f
     private var isDragging = false
 
+    /**
+     * @property viewRect: "
+     */
     // Using this matrix we will show the bg template according to the aspect ratio
     private val matrix = Matrix()
 
+    /**
+     * @property viewRect: "
+     */
     private val deviceScreenWidth = resources.displayMetrics.widthPixels
     private var aspectRatio: Float = 1.0f
-    private var isFirstTime = true
 
+    /**
+     * @property viewRect: "
+     */
+    // Calculate the transformed dimensions of imageRect
+    private var transformedWidth = 0f
+    private var transformedHeight = 0f
+
+    /**
+     * @property viewRect: "
+     */
+    // Calculate the left, top, right, and bottom values of the transformed imageRect
+    private var transformedLeft = 0f
+    private var transformedTop = 0f
+    private var transformedRight = 0f
+    private var transformedBottom = 0f
+
+    /**
+     * @property viewRect: "
+     */
     // Initialize a float array to hold the matrix values
     private val matrixValues = FloatArray(9)
 
+    /**
+     * @property viewRect: "
+     */
+    private var isFirstTime = true
+    private var isZooming = false
     private var scaleFactor = 1.0f
-    // Initialize a scale gesture detector for pinch-to-zoom
-    private val scaleGestureDetector: ScaleGestureDetector = ScaleGestureDetector(context, ScaleListener())
-    // Custom gesture listener for pinch-to-zoom
-    private inner class ScaleListener : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-        override fun onScale(detector: ScaleGestureDetector): Boolean {
-            val scaleFactor = detector.scaleFactor
-            val focusX = detector.focusX
-            val focusY = detector.focusY
 
-            matrix.postScale(scaleFactor, scaleFactor, focusX, focusY)
-            //applyMatrixToBounds()
+    /**
+     * @property viewRect: "
+     */
+    // Initialize a scale gesture detector for pinch-to-zoom
+    private val scaleGestureDetector: ScaleGestureDetector = ScaleGestureDetector(context, object: ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        override fun onScale(detector: ScaleGestureDetector): Boolean {
+            scaleFactor *= detector.scaleFactor
+            scaleFactor = 1.0f.coerceAtLeast(scaleFactor.coerceAtMost(4f))
+            isZooming = true
             invalidate()
             return true
         }
-    }
+    })
 
     init {
         setImageResource(R.drawable.birthday_frame_one, R.drawable.img_pic)
@@ -72,9 +116,9 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     }
 
     fun setImageResource(templateId: Int, imageId: Int) {
-        templateBitmap = BitmapFactory.decodeResource(resources, templateId)
-        selectedImageBitmap = BitmapFactory.decodeResource(resources, imageId)
-        mDrawable = BitmapDrawable(resources, selectedImageBitmap)
+        backgroundBitmap = BitmapFactory.decodeResource(resources, templateId)
+        imageBitmap = BitmapFactory.decodeResource(resources, imageId)
+        imageDrawable = BitmapDrawable(resources, imageBitmap)
         requestLayout()
         invalidate()
     }
@@ -87,31 +131,27 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         val viewWidth = MeasureSpec.getSize(widthMeasureSpec)
         val viewHeight = MeasureSpec.getSize(heightMeasureSpec)
 
-        if (templateBitmap!!.width > 0) aspectRatio = templateBitmap!!.height.toFloat() / templateBitmap!!.width.toFloat()
+        if (backgroundBitmap!!.width > 0) aspectRatio = backgroundBitmap!!.height.toFloat() / backgroundBitmap!!.width.toFloat()
 
         val measuredWidth: Int
         val measuredHeight: Int
 
         if (widthMode == MeasureSpec.EXACTLY && heightMode == MeasureSpec.EXACTLY) {
             // If both width and height are fixed (e.g., match_parent or specific dimensions)
-            Log.d(TAG, "onMeasure: case 1 both exactly")
             measuredWidth = viewWidth
             measuredHeight = viewHeight
         } else if (widthMode == MeasureSpec.EXACTLY) {
             // If width is fixed (e.g., match_parent or specific dimension)
-            Log.d(TAG, "onMeasure: case 2 width exactly")
             measuredWidth = viewWidth
             measuredHeight = (measuredWidth * aspectRatio).toInt()
         } else if (heightMode == MeasureSpec.EXACTLY) {
             // If height is fixed (e.g., match_parent or specific dimension)
-            Log.d(TAG, "onMeasure: case 3 height exactly")
             measuredHeight = viewHeight
             measuredWidth = (measuredHeight / aspectRatio).toInt()
         } else {
             // If both width and height are wrap_content
-            Log.d(TAG, "onMeasure: case 4 both wrap content")
             measuredWidth = if (suggestedMinimumWidth != 0) suggestedMinimumWidth else {
-                if (deviceScreenWidth > templateBitmap!!.width) templateBitmap!!.width else deviceScreenWidth
+                if (deviceScreenWidth > backgroundBitmap!!.width) backgroundBitmap!!.width else deviceScreenWidth
             }
             measuredHeight = (measuredWidth * aspectRatio).toInt()
         }
@@ -123,10 +163,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         super.onDraw(canvas)
 
         // Draw the background template image.
-        templateBitmap?.let {
+        backgroundBitmap?.let {
             viewRect.set(0f, 0f, width.toFloat(), height.toFloat())
-            templateRect.set(0f, 0f, it.width.toFloat(), it.height.toFloat())
-            matrix.setRectToRect(templateRect, viewRect, Matrix.ScaleToFit.CENTER)
+            backgroundRect.set(0f, 0f, it.width.toFloat(), it.height.toFloat())
+            matrix.setRectToRect(backgroundRect, viewRect, Matrix.ScaleToFit.CENTER)
             canvas.drawBitmap(it, matrix, null)
         }
 
@@ -139,16 +179,14 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             val scaleY = matrixValues[Matrix.MSCALE_Y]
 
             // Calculate the transformed dimensions of imageRect
-            val transformedWidth = templateRect.width() * scaleX
-            val transformedHeight = templateRect.height() * scaleY
+            transformedWidth = backgroundRect.width() * scaleX
+            transformedHeight = backgroundRect.height() * scaleY
 
             // Calculate the left, top, right, and bottom values of the transformed imageRect
-            val transformedLeft = (templateRect.left * scaleX) + 450
-            val transformedTop = (templateRect.top * scaleY) + 300
-            val transformedRight = (transformedLeft + transformedWidth) - 500
-            val transformedBottom = (transformedTop + transformedHeight) - 600
-
-
+            transformedLeft = (backgroundRect.left * scaleX) + 450
+            transformedTop = (backgroundRect.top * scaleY) + 300
+            transformedRight = (transformedLeft + transformedWidth) - 500
+            transformedBottom = (transformedTop + transformedHeight) - 600
 
             imageRect.set(transformedLeft, transformedTop, transformedRight, transformedBottom)
             imageRectFix.set(imageRect)
@@ -156,17 +194,59 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             isFirstTime = false
         }
 
+        if (isZooming) {
+            // Apply the scaleFactor uniformly to all variables
+            val scaledWidth = transformedWidth * scaleFactor
+            val scaledHeight = transformedHeight * scaleFactor
+            transformedLeft = (transformedLeft * scaleFactor)
+            transformedTop = (transformedTop * scaleFactor)
+            transformedRight = (transformedLeft + scaledWidth)
+            transformedBottom = (transformedTop + scaledHeight)
+
+            isZooming = false
+
+            // Ensure the image remains within the view's bounds
+            val viewLeft = 0f
+            val viewTop = 0f
+            val viewRight = width.toFloat()
+            val viewBottom = height.toFloat()
+
+            if (transformedLeft < viewLeft) {
+                transformedRight += viewLeft - transformedLeft
+                transformedLeft = viewLeft
+            }
+            if (transformedTop < viewTop) {
+                transformedBottom += viewTop - transformedTop
+                transformedTop = viewTop
+            }
+            if (transformedRight > viewRight) {
+                transformedLeft -= transformedRight - viewRight
+                transformedRight = viewRight
+            }
+            if (transformedBottom > viewBottom) {
+                transformedTop -= transformedBottom - viewBottom
+                transformedBottom = viewBottom
+            }
+
+            imageRect.set(transformedLeft, transformedTop, transformedRight, transformedBottom)
+        }
+
         // Set the bounds for the selected image drawable.
-        mDrawable!!.bounds = imageRect.toRect()
+        imageDrawable!!.bounds = imageRect.toRect()
 
         // Clip the drawing of the selected image to the template bounds.
         canvas.clipRect(imageRectFix)
 
-        mDrawable!!.draw(canvas)
+        imageDrawable!!.draw(canvas)
     }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
+
+        event.let { scaleGestureDetector.onTouchEvent(it) }
+        // Check if a zoom gesture occurred and don't handle other touch events
+        if (scaleGestureDetector.isInProgress) return true
+
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 // Check if the touch event is within the selected image bounds.
@@ -195,9 +275,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
                 }
             }
 
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                isDragging = false
-            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> isDragging = false
         }
 
         // Consume the event to indicate that it's been handled.
