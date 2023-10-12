@@ -1,24 +1,25 @@
 @Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed
 plugins {
-    alias(libs.plugins.androidApplication)
+    alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
 }
 
 android {
-    namespace = "dev.pegasus.phototemplates"
+    namespace = "dev.pegasus.template"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "dev.pegasus.phototemplates"
         minSdk = 23
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
     }
 
     buildTypes {
-        release {
+        debug {
             isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        release {
+            isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -29,16 +30,9 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-    buildFeatures {
-        viewBinding = true
-    }
 }
 
 dependencies {
-    implementation(project(":template"))
-
     implementation(libs.core.ktx)
     implementation(libs.appcompat)
-    implementation(libs.material)
-    implementation(libs.constraintlayout)
 }

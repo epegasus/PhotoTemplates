@@ -1,4 +1,4 @@
-package dev.pegasus.phototemplates.customView
+package dev.pegasus.template
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -7,27 +7,28 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.RectF
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
+import androidx.annotation.DrawableRes
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.toRect
-import dev.pegasus.phototemplates.R
+import dev.pegasus.template.utils.HelperUtils.TAG
+import dev.pegasus.template.utils.ImageUtils
 
 class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : View(context, attrs, defStyleAttr) {
 
-    private var TAG: String = "TemplateView"
+    private val imageUtils by lazy { ImageUtils(context) }
 
     /**
      * @property backgroundBitmap: Bitmap of background of the template
-     * @property imageBitmap: Bitmap of the image provided by user
      * @property imageDrawable: Drawable of the image provided by user (we need this ultimately)
      */
 
     private var backgroundBitmap: Bitmap? = null
-    private var imageBitmap: Bitmap? = null
     private var imageDrawable: Drawable? = null
 
     /**
@@ -44,9 +45,9 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     /**
      * Variables to track touch events
-     * @property lastTouchX: Save x-axis of a touch inside a view"
-     * @property lastTouchY: Save y-axis of a touch inside a view"
-     * @property isDragging: Check if user's image can be drag-able (depends on touch events)"
+     * @property lastTouchX: Save x-axis of a touch inside a view
+     * @property lastTouchY: Save y-axis of a touch inside a view
+     * @property isDragging: Check if user's image can be drag-able (depends on touch events)
      */
 
     private var lastTouchX = 0f
@@ -95,30 +96,61 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var scaleFactor = 1.0f
 
     /**
-     * @property viewRect: "
+     * Set Backgrounds
      */
-    // Initialize a scale gesture detector for pinch-to-zoom
-    private val scaleGestureDetector: ScaleGestureDetector = ScaleGestureDetector(context, object: ScaleGestureDetector.SimpleOnScaleGestureListener() {
-        override fun onScale(detector: ScaleGestureDetector): Boolean {
-            scaleFactor *= detector.scaleFactor
-            scaleFactor = 1.0f.coerceAtLeast(scaleFactor.coerceAtMost(4f))
-            isZooming = true
-            invalidate()
-            return true
-        }
-    })
-
-    init {
-        setImageResource(R.drawable.birthday_frame_one, R.drawable.img_pic)
-
-        isClickable = true
-        isFocusable = true
+    override fun setBackgroundResource(@DrawableRes resId: Int) {
+        backgroundBitmap = BitmapFactory.decodeResource(resources, resId)
+        requestLayout()
+        invalidate()
     }
 
-    fun setImageResource(templateId: Int, imageId: Int) {
-        backgroundBitmap = BitmapFactory.decodeResource(resources, templateId)
-        imageBitmap = BitmapFactory.decodeResource(resources, imageId)
-        imageDrawable = BitmapDrawable(resources, imageBitmap)
+    fun setBackgroundBitmap(bitmap: Bitmap?) {
+        if (bitmap == null) {
+            Log.e(TAG, "TemplateView: setBackgroundBitmap: ", NullPointerException("Bitmap is Null"))
+            return
+        }
+        backgroundBitmap = bitmap
+        requestLayout()
+        invalidate()
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun setBackgroundDrawable(drawable: Drawable?) {
+        if (drawable == null) {
+            Log.e(TAG, "TemplateView: setBackgroundDrawable: ", NullPointerException("Drawable is Null"))
+            return
+        }
+        backgroundBitmap = imageUtils.createBitmapFromDrawable(drawable)
+        requestLayout()
+        invalidate()
+    }
+
+    /**
+     * Set User Images
+     */
+
+    fun setImageResource(@DrawableRes imageId: Int) {
+        imageDrawable = ContextCompat.getDrawable(context, imageId)
+        requestLayout()
+        invalidate()
+    }
+
+    fun setImageBitmap(bitmap: Bitmap?) {
+        if (bitmap == null) {
+            Log.e(TAG, "TemplateView: setImageBitmap: ", NullPointerException("Bitmap is Null"))
+            return
+        }
+        imageDrawable = imageUtils.createDrawableFromBitmap(bitmap)
+        requestLayout()
+        invalidate()
+    }
+
+    fun setImageDrawable(drawable: Drawable?) {
+        if (drawable == null) {
+            Log.e(TAG, "TemplateView: setImageDrawable: ", NullPointerException("Drawable is Null"))
+            return
+        }
+        imageDrawable = drawable
         requestLayout()
         invalidate()
     }
@@ -155,7 +187,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             }
             measuredHeight = (measuredWidth * aspectRatio).toInt()
         }
-
         setMeasuredDimension(measuredWidth, measuredHeight)
     }
 
@@ -170,7 +201,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             canvas.drawBitmap(it, matrix, null)
         }
 
-        if (isFirstTime){
+        if (isFirstTime) {
             // Get the matrix values
             matrix.getValues(matrixValues)
 
@@ -282,4 +313,14 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         return true
     }
 
+    // Initialize a scale gesture detector for pinch-to-zoom
+    private val scaleGestureDetector: ScaleGestureDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        override fun onScale(detector: ScaleGestureDetector): Boolean {
+            scaleFactor *= detector.scaleFactor
+            scaleFactor = 1.0f.coerceAtLeast(scaleFactor.coerceAtMost(4f))
+            isZooming = true
+            invalidate()
+            return true
+        }
+    })
 }

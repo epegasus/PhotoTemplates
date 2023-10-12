@@ -19,7 +19,7 @@ class SimpleImageView @JvmOverloads constructor(context: Context, attrs: Attribu
     private val deviceScreenWidth = resources.displayMetrics.widthPixels
 
     init {
-        setImageResource(R.drawable.dummy)
+        setImageResource(R.drawable.img_pic)
     }
 
     fun setImageResource(resourceId: Int) {
