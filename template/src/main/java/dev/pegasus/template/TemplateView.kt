@@ -64,6 +64,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      * @property viewRect: "
      */
     private val deviceScreenWidth = resources.displayMetrics.widthPixels
+    private val deviceScreenHeight = resources.displayMetrics.heightPixels
     private var aspectRatio: Float = 1.0f
 
     /**
@@ -93,6 +94,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      */
     private var isZooming = false
     private var scaleFactor = 1.0f
+    private var zoomCenterX = 0f
+    private var zoomCenterY = 0f
 
     /**
      * Set Backgrounds
@@ -171,8 +174,14 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
         if (widthMode == MeasureSpec.EXACTLY && heightMode == MeasureSpec.EXACTLY) {
             // If both width and height are fixed (e.g., match_parent or specific dimensions)
-            measuredWidth = viewWidth
-            measuredHeight = viewHeight
+            if (viewWidth == deviceScreenWidth && viewHeight == deviceScreenHeight){
+                measuredWidth = deviceScreenWidth
+                measuredHeight = (measuredWidth * aspectRatio).toInt()
+            }
+            else {
+                measuredWidth = viewWidth
+                measuredHeight = viewHeight
+            }
         } else if (widthMode == MeasureSpec.EXACTLY) {
             // If width is fixed (e.g., match_parent or specific dimension)
             measuredWidth = viewWidth
@@ -222,18 +231,115 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             transformedWidth = backgroundRect.width() * scaleX
             transformedHeight = backgroundRect.height() * scaleY
 
-            // Calculate the left, top, right, and bottom values of the transformed imageRect
-            transformedLeft = (backgroundRect.left * scaleX) + 450
-            transformedTop = (backgroundRect.top * scaleY) + 300
-            transformedRight = (transformedLeft + transformedWidth) - 500
-            transformedBottom = (transformedTop + transformedHeight) - 600
+            // Calculate the coordinates for the user's image space based on the device's screen size
+            val userImageSpaceWidth = transformedWidth * 0.475f // 513 / 1080
+            val userImageSpaceHeight = transformedHeight * 0.6052f // (822 / 1354)
+            val userImageSpaceX = transformedWidth * 0.4491f // 487 / 1080
+            val userImageSpaceY = transformedHeight * 0.1949f // 264 / 1354
 
-            imageRect.set(transformedLeft, transformedTop, transformedRight, transformedBottom)
+            // Calculate the coordinates for the user's image
+            val userImageRight = userImageSpaceX + userImageSpaceWidth
+            val userImageBottom = userImageSpaceY + userImageSpaceHeight
+
+            imageRect.set(userImageSpaceX, userImageSpaceY, userImageRight, userImageBottom)
             imageRectFix.set(imageRect)
         }
 
         if (isZooming) {
-            // Apply the scaleFactor uniformly to all variables
+
+            // Calculate the new size based on the scaleFactor
+            val newWidth = transformedWidth * scaleFactor
+            val newHeight = transformedHeight * scaleFactor
+
+            // Calculate the new left and top
+            var newLeft = zoomCenterX - newWidth / 2
+            var newTop = zoomCenterY - newHeight / 2
+
+            // Calculate the new right and bottom
+            var newRight = newLeft + newWidth
+            var newBottom = newTop + newHeight
+
+            // Ensure the image remains within the view's bounds
+            val viewLeft = 0f
+            val viewTop = 0f
+            val viewRight = width.toFloat()
+            val viewBottom = height.toFloat()
+
+            if (newLeft < viewLeft) {
+                val deltaX = viewLeft - newLeft
+                newLeft += deltaX
+                newRight += deltaX
+            }
+            if (newTop < viewTop) {
+                val deltaY = viewTop - newTop
+                newTop += deltaY
+                newBottom += deltaY
+            }
+            if (newRight > viewRight) {
+                val deltaX = viewRight - newRight
+                newLeft += deltaX
+                newRight += deltaX
+            }
+            if (newBottom > viewBottom) {
+                val deltaY = viewBottom - newBottom
+                newTop += deltaY
+                newBottom += deltaY
+            }
+
+            // Update the transformed coordinates
+            transformedLeft = newLeft
+            transformedTop = newTop
+            transformedRight = newRight
+            transformedBottom = newBottom
+
+            isZooming = false
+
+            // Update the imageRect
+            imageRect.set(transformedLeft, transformedTop, transformedRight, transformedBottom)
+
+            /*// Calculate the distance between the zoom center and the image edges
+            val zoomCenterToLeft = zoomCenterX - transformedLeft
+            val zoomCenterToTop = zoomCenterY - transformedTop
+            val zoomCenterToRight = transformedRight - zoomCenterX
+            val zoomCenterToBottom = transformedBottom - zoomCenterY
+
+            // Apply the scale factor uniformly around the zoom center
+            transformedLeft = zoomCenterX - (transformedRight * scaleFactor)
+            transformedTop = zoomCenterY - (zoomCenterToBottom * scaleFactor)
+            transformedRight = zoomCenterX + (zoomCenterToRight * scaleFactor)
+            transformedBottom = zoomCenterY + (zoomCenterToBottom * scaleFactor)
+
+            isZooming = false
+
+            // Ensure the image remains within the view's bounds
+            val viewLeft = 0f
+            val viewTop = 0f
+            val viewRight = width
+            val viewBottom = height
+
+            if (transformedLeft < viewLeft) {
+                val delta = viewLeft - transformedLeft
+                transformedLeft += delta
+                transformedRight += delta
+            }
+            if (transformedTop < viewTop) {
+                val delta = viewTop - transformedTop
+                transformedTop += delta
+                transformedBottom += delta
+            }
+            if (transformedRight > viewRight) {
+                val delta = transformedRight - viewRight
+                transformedLeft -= delta
+                transformedRight -= delta
+            }
+            if (transformedBottom > viewBottom) {
+                val delta = transformedBottom - viewBottom
+                transformedTop -= delta
+                transformedBottom -= delta
+            }
+*/
+
+            /*// Apply the scaleFactor uniformly to all variables
             val scaledWidth = transformedWidth * scaleFactor
             val scaledHeight = transformedHeight * scaleFactor
             transformedLeft = (transformedLeft * scaleFactor)
@@ -266,12 +372,27 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
                 transformedBottom = viewBottom
             }
 
-            imageRect.set(transformedLeft, transformedTop, transformedRight, transformedBottom)
+            imageRect.set(transformedLeft, transformedTop, transformedRight, transformedBottom)*/
         }
 
         if (imageDrawable == null) {
             Log.e(TAG, "TemplateView: onDraw: imageDrawable is null")
         }
+
+        /*// Calculate the space where the user's image should be displayed
+        val userImageSpaceWidth = 513
+        val userImageSpaceHeight = 822
+        val userImageSpaceX = 487
+        val userImageSpaceY = 264
+
+        // Calculate the coordinates for the user's image
+        val userImageLeft = userImageSpaceX.toFloat()
+        val userImageTop = userImageSpaceY.toFloat()
+        val userImageRight = (userImageSpaceX + userImageSpaceWidth).toFloat()
+        val userImageBottom = (userImageSpaceY + userImageSpaceHeight).toFloat()
+
+        imageRect.set(userImageLeft, userImageTop, userImageRight, userImageBottom)
+        imageRectFix.set(imageRect)*/
 
         // Set the bounds for the selected image drawable.
         imageDrawable?.bounds = imageRect.toRect()
@@ -284,6 +405,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
+
         event.let { scaleGestureDetector.onTouchEvent(it) }
         // Check if a zoom gesture occurred and don't handle other touch events
         if (scaleGestureDetector.isInProgress) return true
@@ -291,7 +413,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 // Check if the touch event is within the selected image bounds.
-                if (imageRect.contains(event.x, event.y)) {
+                if (imageRectFix.contains(event.x, event.y)) {
                     isDragging = true
                     lastTouchX = event.x
                     lastTouchY = event.y
@@ -325,6 +447,11 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     // Initialize a scale gesture detector for pinch-to-zoom
     private val scaleGestureDetector: ScaleGestureDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
+            zoomCenterX = detector.focusX
+            zoomCenterY = detector.focusY
+            return true
+        }
         override fun onScale(detector: ScaleGestureDetector): Boolean {
             scaleFactor *= detector.scaleFactor
             scaleFactor = 1.0f.coerceAtLeast(scaleFactor.coerceAtMost(4f))
@@ -333,4 +460,5 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             return true
         }
     })
+
 }
