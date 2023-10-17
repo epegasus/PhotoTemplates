@@ -2,4 +2,5 @@
     <string name="app_name">Photo Templates</string>
     <string name="testing_imageview">Testing imageview</string>
     <string name="change_background">change background</string>
+    <string name="select_photo">Select Photo</string>
 </resources>
