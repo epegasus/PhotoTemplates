@@ -7,10 +7,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.RectF
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import android.net.Uri
-import android.provider.MediaStore
 import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
@@ -74,7 +71,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      */
     private val deviceScreenWidth = resources.displayMetrics.widthPixels
     private val deviceScreenHeight = resources.displayMetrics.heightPixels
-    private var aspectRatio: Float = 1.0f
+    private var templateAspectRatio: Float = 1.0f
+    private var imageAspectRatio: Float = 1.0f
 
     /**
      * @property viewRect: "
@@ -162,6 +160,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             return
         }
         imageDrawable = imageUtils.createDrawableFromBitmap(bitmap)
+        imageDrawable?.let { imageAspectRatio = it.intrinsicHeight.toFloat() / it.intrinsicWidth.toFloat() }
+
         invalidate()
     }
 
@@ -187,7 +187,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         val viewWidth = MeasureSpec.getSize(widthMeasureSpec)
         val viewHeight = MeasureSpec.getSize(heightMeasureSpec)
 
-        if (backgroundBitmap!!.width > 0) aspectRatio = backgroundBitmap!!.height.toFloat() / backgroundBitmap!!.width.toFloat()
+        if (backgroundBitmap!!.width > 0) templateAspectRatio = backgroundBitmap!!.height.toFloat() / backgroundBitmap!!.width.toFloat()
 
         val measuredWidth: Int
         val measuredHeight: Int
@@ -196,7 +196,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             // If both width and height are fixed (e.g., match_parent or specific dimensions)
             if (viewWidth == deviceScreenWidth && viewHeight == deviceScreenHeight){
                 measuredWidth = deviceScreenWidth
-                measuredHeight = (measuredWidth * aspectRatio).toInt()
+                measuredHeight = (measuredWidth * templateAspectRatio).toInt()
             }
             else {
                 measuredWidth = viewWidth
@@ -205,17 +205,17 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         } else if (widthMode == MeasureSpec.EXACTLY) {
             // If width is fixed (e.g., match_parent or specific dimension)
             measuredWidth = viewWidth
-            measuredHeight = (measuredWidth * aspectRatio).toInt()
+            measuredHeight = (measuredWidth * templateAspectRatio).toInt()
         } else if (heightMode == MeasureSpec.EXACTLY) {
             // If height is fixed (e.g., match_parent or specific dimension)
             measuredHeight = viewHeight
-            measuredWidth = (measuredHeight / aspectRatio).toInt()
+            measuredWidth = (measuredHeight / templateAspectRatio).toInt()
         } else {
             // If both width and height are wrap_content
             measuredWidth = if (suggestedMinimumWidth != 0) suggestedMinimumWidth else {
                 if (deviceScreenWidth > backgroundBitmap!!.width) backgroundBitmap!!.width else deviceScreenWidth
             }
-            measuredHeight = (measuredWidth * aspectRatio).toInt()
+            measuredHeight = (measuredWidth * templateAspectRatio).toInt()
         }
         setMeasuredDimension(measuredWidth, measuredHeight)
     }
@@ -253,19 +253,38 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
             // Calculate the coordinates for the user's image space based on the device's screen size
             mModel?.let {
-                val userImageSpaceWidth = transformedWidth * (it.frameWidth / it.width) // 513 / 1080
-                val userImageSpaceHeight = transformedHeight * (it.frameHeight / it.height) // (822 / 1354)
-                val userImageSpaceX = transformedWidth * (it.frameX / it.width) // 487 / 1080
-                val userImageSpaceY = transformedHeight * (it.frameY / it.height) // 264 / 1354
+                val userImageSpaceWidth = transformedWidth * (it.frameWidth / it.width)
+                val userImageSpaceHeight = transformedHeight * (it.frameHeight / it.height)
+                val userImageSpaceX = transformedWidth * (it.frameX / it.width)
+                val userImageSpaceY = transformedHeight * (it.frameY / it.height)
 
                 // Calculate the coordinates for the user's image
                 val userImageRight = userImageSpaceX + userImageSpaceWidth
                 val userImageBottom = userImageSpaceY + userImageSpaceHeight
 
-                imageRect.set(userImageSpaceX, userImageSpaceY, userImageRight, userImageBottom)
-                imageRectFix.set(imageRect)
-            }
+                imageRectFix.set(userImageSpaceX, userImageSpaceY, userImageRight, userImageBottom)
+                //imageRect.set(userImageSpaceX, userImageSpaceY, userImageRight, userImageBottom)
 
+                // Now to scale the user image inside the frame
+
+                // Calculate the available width and height while maintaining aspect ratio
+                var availableWidth = imageRectFix.width()
+                var availableHeight = availableWidth / imageAspectRatio
+
+                if (availableHeight > imageRectFix.height()) {
+                    availableHeight = imageRectFix.height()
+                    availableWidth = availableHeight * imageAspectRatio
+                }
+
+                // Calculate the position to center the imageRect inside imageRectFix
+                val left = imageRectFix.centerX() - availableWidth / 2
+                val top = imageRectFix.centerY() - availableHeight / 2
+                val right = left + availableWidth
+                val bottom = top + availableHeight
+
+                // Set the calculated values to imageRect
+                imageRect.set(left, top, right, bottom)
+            }
         }
 
         if (isZooming) {
