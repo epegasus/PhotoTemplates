@@ -8,31 +8,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import dev.pegasus.phototemplates.databinding.ActivityMainBinding
-import dev.pegasus.template.utils.TemplateModel
+import dev.pegasus.template.dataClasses.TemplateModel
+import dev.pegasus.template.dataProviders.DpTemplates
 
 class MainActivity : AppCompatActivity() {
 
     private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(binding.root)
-
-        initView(TemplateModel(1, R.drawable.img_bg_one, 1080f, 1354f, 513.35f, 822.85f, 487f, 264f))
-
-        binding.btnChangeBackground.setOnClickListener {
-            //binding.templateView.setBackgroundResource(R.drawable.img_bg_two)
-            binding.view.isVisible = !binding.view.isVisible
-        }
-
-        binding.btnSelectPhoto.setOnClickListener { galleryLauncher.launch(Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)) }
-    }
-
-    private fun initView(model: TemplateModel) {
-        //binding.templateView.setBackgroundResource(R.drawable.img_bg_one)
-        binding.templateView.setBackgroundFromModel(model)
-        binding.templateView.setImageResource(R.drawable.img_pic)
-    }
+    private val dpTemplates by lazy { DpTemplates() }
 
     // Initialize the galleryLauncher
     private val galleryLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -46,4 +28,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(binding.root)
+
+        initView()
+
+        binding.btnChangeBackground.setOnClickListener { binding.view.isVisible = !binding.view.isVisible }
+        binding.btnSelectPhoto.setOnClickListener { galleryLauncher.launch(Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)) }
+    }
+
+    private fun initView() {
+        binding.templateView.setBackgroundFromModel(dpTemplates.list[0])
+        binding.templateView.setImageResource(R.drawable.img_pic)
+    }
 }

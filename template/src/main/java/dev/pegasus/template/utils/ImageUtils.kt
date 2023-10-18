@@ -20,6 +20,4 @@ class ImageUtils(private val context: Context) {
         drawable.draw(canvas)
         return bitmap
     }
-
-
 }

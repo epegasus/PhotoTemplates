@@ -18,7 +18,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.toRect
 import dev.pegasus.template.utils.HelperUtils.TAG
 import dev.pegasus.template.utils.ImageUtils
-import dev.pegasus.template.utils.TemplateModel
+import dev.pegasus.template.dataClasses.TemplateModel
 
 class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : View(context, attrs, defStyleAttr) {
 
@@ -45,9 +45,9 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var imageRectFix = RectF()
 
     /**
-     * @property mModel: It will hold the data about the background template received from server
+     * @property templateModel: Complete specifications for a template
      */
-    private var mModel: TemplateModel? = null
+    private var templateModel: TemplateModel? = null
 
     /**
      * Variables to track touch events
@@ -61,13 +61,13 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var isDragging = false
 
     /**
-     * @property viewRect: "
+     * @property
      */
     // Using this matrix we will show the bg template according to the aspect ratio
     private val matrix = Matrix()
 
     /**
-     * @property viewRect: "
+     * @property
      */
     private val deviceScreenWidth = resources.displayMetrics.widthPixels
     private val deviceScreenHeight = resources.displayMetrics.heightPixels
@@ -75,14 +75,14 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var imageAspectRatio: Float = 1.0f
 
     /**
-     * @property viewRect: "
+     * @property
      */
     // Calculate the transformed dimensions of imageRect
     private var transformedWidth = 0f
     private var transformedHeight = 0f
 
     /**
-     * @property viewRect: "
+     * @property
      */
     // Calculate the left, top, right, and bottom values of the transformed imageRect
     private var transformedLeft = 0f
@@ -91,13 +91,13 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var transformedBottom = 0f
 
     /**
-     * @property viewRect: "
+     * @property
      */
     // Initialize a float array to hold the matrix values
     private val matrixValues = FloatArray(9)
 
     /**
-     * @property viewRect: "
+     * @property
      */
     private var isZooming = false
     private var scaleFactor = 1.0f
@@ -118,8 +118,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      */
     fun setBackgroundFromModel(model: TemplateModel) {
         // Extract the necessary data from the model and set the background accordingly
-        mModel = model
-        backgroundBitmap = mModel?.let { BitmapFactory.decodeResource(resources, it.templateImage) }
+        templateModel = model
+        backgroundBitmap = BitmapFactory.decodeResource(resources, model.bgImage)
         updateBackgroundRect()
         invalidate()
     }
@@ -252,7 +252,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             transformedHeight = backgroundRect.height() * scaleY
 
             // Calculate the coordinates for the user's image space based on the device's screen size
-            mModel?.let {
+            templateModel?.let {
                 val userImageSpaceWidth = transformedWidth * (it.frameWidth / it.width)
                 val userImageSpaceHeight = transformedHeight * (it.frameHeight / it.height)
                 val userImageSpaceX = transformedWidth * (it.frameX / it.width)
@@ -288,7 +288,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         }
 
         if (isZooming) {
-
             // Calculate the new size based on the scaleFactor
             val newWidth = transformedWidth * scaleFactor
             val newHeight = transformedHeight * scaleFactor
@@ -355,7 +354,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-
         event.let { scaleGestureDetector.onTouchEvent(it) }
         // Check if a zoom gesture occurred and don't handle other touch events
         if (scaleGestureDetector.isInProgress) return true
@@ -410,5 +408,4 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             return true
         }
     })
-
 }
