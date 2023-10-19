@@ -16,11 +16,11 @@ import android.view.View
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toRect
+import dev.pegasus.template.dataClasses.TemplateModel
 import dev.pegasus.template.utils.HelperUtils.TAG
 import dev.pegasus.template.utils.ImageUtils
-import dev.pegasus.template.dataClasses.TemplateModel
 
-class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : View(context, attrs, defStyleAttr) {
+class CircleTemplateView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : View(context, attrs, defStyleAttr) {
 
     private val imageUtils by lazy { ImageUtils(context) }
 
@@ -45,9 +45,9 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var imageRectFix = RectF()
 
     /**
-     * @property templateModel: Complete specifications for a template
+     * @property mModel: It will hold the data about the background template received from server
      */
-    private var templateModel: TemplateModel? = null
+    private var mModel: TemplateModel? = null
 
     /**
      * Variables to track touch events
@@ -61,13 +61,13 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var isDragging = false
 
     /**
-     * @property
+     * @property viewRect: "
      */
     // Using this matrix we will show the bg template according to the aspect ratio
     private val matrix = Matrix()
 
     /**
-     * @property
+     * @property viewRect: "
      */
     private val deviceScreenWidth = resources.displayMetrics.widthPixels
     private val deviceScreenHeight = resources.displayMetrics.heightPixels
@@ -75,14 +75,14 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var imageAspectRatio: Float = 1.0f
 
     /**
-     * @property
+     * @property viewRect: "
      */
     // Calculate the transformed dimensions of imageRect
     private var transformedWidth = 0f
     private var transformedHeight = 0f
 
     /**
-     * @property
+     * @property viewRect: "
      */
     // Calculate the left, top, right, and bottom values of the transformed imageRect
     private var transformedLeft = 0f
@@ -91,13 +91,13 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var transformedBottom = 0f
 
     /**
-     * @property
+     * @property viewRect: "
      */
     // Initialize a float array to hold the matrix values
     private val matrixValues = FloatArray(9)
 
     /**
-     * @property
+     * @property viewRect: "
      */
     private var isZooming = false
     private var scaleFactor = 1.0f
@@ -118,8 +118,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      */
     fun setBackgroundFromModel(model: TemplateModel) {
         // Extract the necessary data from the model and set the background accordingly
-        templateModel = model
-        backgroundBitmap = BitmapFactory.decodeResource(resources, model.bgImage)
+        mModel = model
+        backgroundBitmap = mModel?.let { BitmapFactory.decodeResource(resources, it.bgImage) }
         updateBackgroundRect()
         invalidate()
     }
@@ -159,10 +159,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             Log.e(TAG, "TemplateView: setImageBitmap: ", NullPointerException("Bitmap is Null"))
             return
         }
-        imageAspectRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
-        Log.d(TAG, "setImageBitmap: imageAspectRatio: $imageAspectRatio")
         imageDrawable = imageUtils.createDrawableFromBitmap(bitmap)
-        updateUserImageRect()
+        imageDrawable?.let { imageAspectRatio = it.intrinsicHeight.toFloat() / it.intrinsicWidth.toFloat() }
 
         invalidate()
     }
@@ -179,36 +177,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private fun updateBackgroundRect() {
         backgroundBitmap?.let { backgroundRect.set(0f, 0f, it.width.toFloat(), it.height.toFloat()) }
         matrix.setRectToRect(backgroundRect, viewRect, Matrix.ScaleToFit.CENTER)
-    }
-
-    private fun updateUserImageRect(){
-
-        if (imageRectFix.isEmpty) return
-
-        // Calculate the available width and height while maintaining aspect ratio
-        var availableHeight = imageRectFix.height()
-        var availableWidth = (availableHeight * imageAspectRatio).toInt()
-
-        /*var availableWidth = imageRectFix.width()
-        var availableHeight = availableWidth / imageAspectRatio
-        Log.d(TAG, "onDraw: availableWidth: $availableWidth")
-        Log.d(TAG, "onDraw: availableHeight: $availableHeight")
-
-        if (availableHeight > imageRectFix.height()) {
-            Log.d(TAG, "onDraw: availableHeight is greater than imageRectFix height")
-            availableHeight = imageRectFix.height()
-            availableWidth = availableHeight * imageAspectRatio
-        }*/
-
-        // Calculate the position to center the imageRect inside imageRectFix
-        val left = imageRectFix.centerX() - (availableWidth / 2f)
-        val top = imageRectFix.centerY() - (availableHeight / 2f)
-        val right = left + availableWidth
-        val bottom = top + availableHeight
-
-        // Set the calculated values to imageRect
-        imageRect.set(left, top, right, bottom)
-        Log.d(TAG, "onDraw: imageRect width: ${imageRect.width()} and height: ${imageRect.height()} before on draw")
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -266,7 +234,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         super.onDraw(canvas)
 
         // Draw the background template image.
-        backgroundBitmap?.let {canvas.drawBitmap(it, matrix, null)}
+        backgroundBitmap?.let {
+            Log.e(TAG, "TemplateView: onDraw: backgroundBitmap is null")
+            canvas.drawBitmap(it, matrix, null)
+        }
 
         if (imageRect.isEmpty) {
             // Get the matrix values
@@ -281,7 +252,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             transformedHeight = backgroundRect.height() * scaleY
 
             // Calculate the coordinates for the user's image space based on the device's screen size
-            templateModel?.let {
+            mModel?.let {
                 val userImageSpaceWidth = transformedWidth * (it.frameWidth / it.width)
                 val userImageSpaceHeight = transformedHeight * (it.frameHeight / it.height)
                 val userImageSpaceX = transformedWidth * (it.frameX / it.width)
@@ -292,11 +263,31 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
                 val userImageBottom = userImageSpaceY + userImageSpaceHeight
 
                 imageRectFix.set(userImageSpaceX, userImageSpaceY, userImageRight, userImageBottom)
-                updateUserImageRect()
+
+                // Now to scale the user image inside the frame
+
+                // Calculate the available width and height while maintaining aspect ratio
+                var availableWidth = imageRectFix.width()
+                var availableHeight = availableWidth / imageAspectRatio
+
+                if (availableHeight > imageRectFix.height()) {
+                    availableHeight = imageRectFix.height()
+                    availableWidth = availableHeight * imageAspectRatio
+                }
+
+                // Calculate the position to center the imageRect inside imageRectFix
+                val left = imageRectFix.centerX() - availableWidth / 2
+                val top = imageRectFix.centerY() - availableHeight / 2
+                val right = left + availableWidth
+                val bottom = top + availableHeight
+
+                // Set the calculated values to imageRect
+                imageRect.set(left, top, right, bottom)
             }
         }
 
         if (isZooming) {
+
             // Calculate the new size based on the scaleFactor
             val newWidth = transformedWidth * scaleFactor
             val newHeight = transformedHeight * scaleFactor
@@ -355,16 +346,20 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         // Set the bounds for the selected image drawable.
         imageDrawable?.bounds = imageRect.toRect()
 
-        Log.d(TAG, "onDraw: imageRect width: ${imageRect.width()} and height: ${imageRect.height()}")
-
         // Clip the drawing of the selected image to the template bounds.
-        canvas.clipRect(imageRectFix)
+        //canvas.clipRect(imageRectFix)
+
+        // Set up the circular clip path
+        val centerX = imageRectFix.width() / 2f
+        val centerY = imageRectFix.height() / 2f
+        val radius = centerX.coerceAtMost(centerY)
 
         imageDrawable?.draw(canvas)
     }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
+
         event.let { scaleGestureDetector.onTouchEvent(it) }
         // Check if a zoom gesture occurred and don't handle other touch events
         if (scaleGestureDetector.isInProgress) return true
@@ -378,7 +373,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
                     lastTouchY = event.y
                 }
             }
-
             MotionEvent.ACTION_MOVE -> {
                 if (isDragging) {
                     // Calculate the distance moved.
