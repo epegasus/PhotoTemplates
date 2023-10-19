@@ -187,19 +187,13 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         if (imageRectFix.isEmpty) return
 
         // Calculate the available width and height while maintaining aspect ratio
-        var availableHeight = imageRectFix.height()
+        var availableHeight = imageRectFix.height().toInt()
         var availableWidth = (availableHeight * imageAspectRatio).toInt()
 
-        /*var availableWidth = imageRectFix.width()
-        var availableHeight = availableWidth / imageAspectRatio
-        Log.d(TAG, "onDraw: availableWidth: $availableWidth")
-        Log.d(TAG, "onDraw: availableHeight: $availableHeight")
-
-        if (availableHeight > imageRectFix.height()) {
-            Log.d(TAG, "onDraw: availableHeight is greater than imageRectFix height")
-            availableHeight = imageRectFix.height()
-            availableWidth = availableHeight * imageAspectRatio
-        }*/
+        if(availableWidth < imageRectFix.width()){
+            availableWidth = imageRectFix.width().toInt()
+            availableHeight = (availableWidth / imageAspectRatio).toInt()
+        }
 
         // Calculate the position to center the imageRect inside imageRectFix
         val left = imageRectFix.centerX() - (availableWidth / 2f)
@@ -370,6 +364,9 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         // Check if a zoom gesture occurred and don't handle other touch events
         if (scaleGestureDetector.isInProgress) return true
 
+        // Attach the double tap gesture detector
+        event.let { gestureDetector.onTouchEvent(it) }
+
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 // Check if the touch event is within the selected image bounds.
@@ -422,6 +419,11 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     })
 
     // Initialize a gesture detector for double-tap
-    //private val gestureDetector: GestureDetector = GestureDetector(context, object : )
+    private val gestureDetector: GestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener(){
+        override fun onDoubleTap(e: MotionEvent): Boolean {
+            updateUserImageRect()
+            return true
+        }
+    })
 
 }
