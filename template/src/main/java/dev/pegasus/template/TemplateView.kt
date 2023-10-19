@@ -152,6 +152,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     fun setImageResource(@DrawableRes imageId: Int) {
         imageDrawable = ContextCompat.getDrawable(context, imageId)
+        updateUserImageRect()
         invalidate()
     }
 
@@ -164,7 +165,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         Log.d(TAG, "setImageBitmap: imageAspectRatio: $imageAspectRatio")
         imageDrawable = imageUtils.createDrawableFromBitmap(bitmap)
         updateUserImageRect()
-
         invalidate()
     }
 
@@ -174,6 +174,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             return
         }
         imageDrawable = drawable
+        updateUserImageRect()
         invalidate()
     }
 
@@ -182,24 +183,12 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         matrix.setRectToRect(backgroundRect, viewRect, Matrix.ScaleToFit.CENTER)
     }
 
-    private fun updateUserImageRect(){
-
+    private fun updateUserImageRect() {
         if (imageRectFix.isEmpty) return
 
         // Calculate the available width and height while maintaining aspect ratio
-        var availableHeight = imageRectFix.height()
-        var availableWidth = (availableHeight * imageAspectRatio).toInt()
-
-        /*var availableWidth = imageRectFix.width()
-        var availableHeight = availableWidth / imageAspectRatio
-        Log.d(TAG, "onDraw: availableWidth: $availableWidth")
-        Log.d(TAG, "onDraw: availableHeight: $availableHeight")
-
-        if (availableHeight > imageRectFix.height()) {
-            Log.d(TAG, "onDraw: availableHeight is greater than imageRectFix height")
-            availableHeight = imageRectFix.height()
-            availableWidth = availableHeight * imageAspectRatio
-        }*/
+        val availableHeight = imageRectFix.height()
+        val availableWidth = (availableHeight * imageAspectRatio).toInt()
 
         // Calculate the position to center the imageRect inside imageRectFix
         val left = imageRectFix.centerX() - (availableWidth / 2f)
@@ -209,7 +198,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
         // Set the calculated values to imageRect
         imageRect.set(left, top, right, bottom)
-        Log.d(TAG, "onDraw: imageRect width: ${imageRect.width()} and height: ${imageRect.height()} before on draw")
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -227,11 +215,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
         if (widthMode == MeasureSpec.EXACTLY && heightMode == MeasureSpec.EXACTLY) {
             // If both width and height are fixed (e.g., match_parent or specific dimensions)
-            if (viewWidth == deviceScreenWidth && viewHeight == deviceScreenHeight){
+            if (viewWidth == deviceScreenWidth && viewHeight == deviceScreenHeight) {
                 measuredWidth = deviceScreenWidth
                 measuredHeight = (measuredWidth * templateAspectRatio).toInt()
-            }
-            else {
+            } else {
                 measuredWidth = viewWidth
                 measuredHeight = viewHeight
             }
@@ -267,7 +254,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         super.onDraw(canvas)
 
         // Draw the background template image.
-        backgroundBitmap?.let {canvas.drawBitmap(it, matrix, null)}
+        backgroundBitmap?.let { canvas.drawBitmap(it, matrix, null) }
 
         if (imageRect.isEmpty) {
             // Get the matrix values
@@ -412,6 +399,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             zoomCenterY = detector.focusY
             return true
         }
+
         override fun onScale(detector: ScaleGestureDetector): Boolean {
             scaleFactor *= detector.scaleFactor
             scaleFactor = 1.0f.coerceAtLeast(scaleFactor.coerceAtMost(4f))
@@ -423,5 +411,4 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     // Initialize a gesture detector for double-tap
     //private val gestureDetector: GestureDetector = GestureDetector(context, object : )
-
 }
