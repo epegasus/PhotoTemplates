@@ -17,9 +17,9 @@ import android.view.View
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toRect
+import dev.pegasus.template.dataClasses.TemplateModel
 import dev.pegasus.template.utils.HelperUtils.TAG
 import dev.pegasus.template.utils.ImageUtils
-import dev.pegasus.template.dataClasses.TemplateModel
 
 class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : View(context, attrs, defStyleAttr) {
 
@@ -187,10 +187,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         if (imageRectFix.isEmpty) return
 
         // Calculate the available width and height while maintaining aspect ratio
-        val availableHeight = imageRectFix.height().toInt()
-        val availableWidth = (availableHeight * imageAspectRatio).toInt()
+        var availableHeight = imageRectFix.height().toInt()
+        var availableWidth = (availableHeight * imageAspectRatio).toInt()
 
-        if(availableWidth < imageRectFix.width()){
+        if (availableWidth < imageRectFix.width()) {
             availableWidth = imageRectFix.width().toInt()
             availableHeight = (availableWidth / imageAspectRatio).toInt()
         }
@@ -418,7 +418,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     })
 
     // Initialize a gesture detector for double-tap
-    private val gestureDetector: GestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener(){
+    private val gestureDetector: GestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDoubleTap(e: MotionEvent): Boolean {
             updateUserImageRect()
             return true
