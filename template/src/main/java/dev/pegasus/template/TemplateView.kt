@@ -8,6 +8,7 @@ import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
+import android.os.Parcelable
 import android.util.AttributeSet
 import android.util.Log
 import android.view.GestureDetector
@@ -18,6 +19,7 @@ import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toRect
 import dev.pegasus.template.dataClasses.TemplateModel
+import dev.pegasus.template.state.CustomViewState
 import dev.pegasus.template.utils.HelperUtils.TAG
 import dev.pegasus.template.utils.ImageUtils
 
@@ -31,6 +33,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      */
 
     private var backgroundBitmap: Bitmap? = null
+    private var imageBitmap: Bitmap? = null
     private var imageDrawable: Drawable? = null
 
     /**
@@ -55,20 +58,29 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      * @property lastTouchX: Save x-axis of a touch inside a view
      * @property lastTouchY: Save y-axis of a touch inside a view
      * @property isDragging: Check if user's image can be drag-able (depends on touch events)
+     * @property dragValueX: Save the overall x-axis drag value, so to keep the user image in-place after screen configuration
+     * @property dragValueY: Save the overall y-axis drag value, so to keep the user image inplace after screen configuration
+     * @property isConfigurationTrigger: this value is flag to indicate that whether configuration happened or not
      */
-
     private var lastTouchX = 0f
     private var lastTouchY = 0f
     private var isDragging = false
+    private var dragValueX = 0f
+    private var dragValueY = 0f
+    private var isConfigurationTrigger = false
 
     /**
-     * @property
+     * @property matrix: This matrix object is used to scale the background template according to the device screen and maintain the aspect ratio
+     * @property matrixValues: It holds the matrix values, we need to get the location (width, height) of our background template
      */
-    // Using this matrix we will show the bg template according to the aspect ratio
     private val matrix = Matrix()
+    private val matrixValues = FloatArray(9)
 
     /**
-     * @property
+     * @property deviceScreenHeight: It saves the device screen height value, and we use it in onMeasure function, for properly locating our custom view
+     * @property deviceScreenWidth: It saves the device screen width value, and we use it in onMeasure function to properly locate our custom view on the device screen
+     * @property templateAspectRatio: to hold the aspect ratio of the background template
+     * @property imageAspectRatio: to hold the aspect ratio of the user selected image
      */
     private val deviceScreenWidth = resources.displayMetrics.widthPixels
     private val deviceScreenHeight = resources.displayMetrics.heightPixels
@@ -76,14 +88,18 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var imageAspectRatio: Float = 1.0f
 
     /**
-     * @property
+     * @property transformedWidth: It holds the width value of the background template after scaling by the matrix
+     * @property transformedHeight: It holds the height value of the background template after scaling by the matrix
      */
     // Calculate the transformed dimensions of imageRect
     private var transformedWidth = 0f
     private var transformedHeight = 0f
 
     /**
-     * @property
+     * @property transformedLeft: This holds the left value of the frame (where we want to show the user image) inside a background template
+     * @property transformedTop: This holds the top value of the frame (where we want to show the user image) inside a background template
+     * @property transformedRight: This holds the right value of the frame (where we want to show the user image) inside a background template
+     * @property transformedBottom: This holds the bottom value of the frame (where we want to show the user image) inside a background template
      */
     // Calculate the left, top, right, and bottom values of the transformed imageRect
     private var transformedLeft = 0f
@@ -92,13 +108,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var transformedBottom = 0f
 
     /**
-     * @property
-     */
-    // Initialize a float array to hold the matrix values
-    private val matrixValues = FloatArray(9)
-
-    /**
-     * @property
+     * @property isZooming: this works as a flag for the image zooming. when it becomes true, we calculate the zoom ratio in onDraw function
+     * @property scaleFactor: holds the zoom scale ratio.
+     * @property zoomCenterX: holds the zoom center x value for equal zooming on all sides
+     * @property zoomCenterY: holds the zoom center y value for equal zooming on all sides
      */
     private var isZooming = false
     private var scaleFactor = 1.0f
@@ -161,6 +174,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             Log.e(TAG, "TemplateView: setImageBitmap: ", NullPointerException("Bitmap is Null"))
             return
         }
+        imageBitmap = bitmap
         imageAspectRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
         Log.d(TAG, "setImageBitmap: imageAspectRatio: $imageAspectRatio")
         imageDrawable = imageUtils.createDrawableFromBitmap(bitmap)
@@ -203,6 +217,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
         // Set the calculated values to imageRect
         imageRect.set(left, top, right, bottom)
+        Log.d(TAG, "updateUserImageRect: left: $left, top: $top, right: $right, bottom: $bottom")
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -250,9 +265,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         imageRect.setEmpty()
         viewRect.set(0f, 0f, width.toFloat(), height.toFloat())
         matrix.setRectToRect(backgroundRect, viewRect, Matrix.ScaleToFit.CENTER)
-
-        // Farooq's work
-        // 1) update imageRect, imageRectFix, imageDrawable (sizing)
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -345,15 +357,46 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             Log.e(TAG, "TemplateView: onDraw: imageDrawable is null")
         }
 
-        // Set the bounds for the selected image drawable.
-        imageDrawable?.bounds = imageRect.toRect()
-
-        Log.d(TAG, "onDraw: imageRect width: ${imageRect.width()} and height: ${imageRect.height()}")
-
         // Clip the drawing of the selected image to the template bounds.
         canvas.clipRect(imageRectFix)
 
+        if (isConfigurationTrigger){
+            if (dragValueX != 0f || dragValueY != 0f) imageRect.offset(dragValueX, dragValueY)
+            isConfigurationTrigger = false
+        }
+
+        // Set the bounds for the selected image drawable.
+        imageDrawable?.bounds = imageRect.toRect()
+
         imageDrawable?.draw(canvas)
+    }
+
+    override fun onSaveInstanceState(): Parcelable {
+        val superState = super.onSaveInstanceState()
+        return CustomViewState(superState).apply {
+            imageBitmapx = imageBitmap
+            imageAspectRatiox = imageAspectRatio
+            scaleFactorx = scaleFactor
+            zoomCenterXx = zoomCenterX
+            zoomCenterYx = zoomCenterY
+            dxx = dragValueX
+            dyx = dragValueY
+        }
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        if (state is CustomViewState) {
+            super.onRestoreInstanceState(state.superState)
+            imageBitmap = state.imageBitmapx as Bitmap
+            imageBitmap?.let { imageDrawable = imageUtils.createDrawableFromBitmap(it) }
+            imageAspectRatio = state.imageAspectRatiox
+            scaleFactor = state.scaleFactorx
+            zoomCenterX = state.zoomCenterXx
+            zoomCenterY = state.zoomCenterYx
+            dragValueX = state.dxx
+            dragValueY = state.dyx
+            isConfigurationTrigger = true
+        } else super.onRestoreInstanceState(state)
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -381,9 +424,12 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
                     val dx = event.x - lastTouchX
                     val dy = event.y - lastTouchY
 
+                    dragValueX += dx
+                    dragValueY += dy
+
                     // Ensure the selected image stays within the template bounds.
                     imageRect.offset(dx, dy)
-
+                    Log.d(TAG, "onTouchEvent: left: ${imageRect.left}, top: ${imageRect.top}, right: ${imageRect.right}, bottom: ${imageRect.bottom}")
                     // Update the last touch position.
                     lastTouchX = event.x
                     lastTouchY = event.y
@@ -424,4 +470,5 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             return true
         }
     })
+
 }
