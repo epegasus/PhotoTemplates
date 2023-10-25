@@ -60,7 +60,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      * @property isDragging: Check if user's image can be drag-able (depends on touch events)
      * @property dragValueX: Save the overall x-axis drag value, so to keep the user image in-place after screen configuration
      * @property dragValueY: Save the overall y-axis drag value, so to keep the user image inplace after screen configuration
-     * @property isConfigurationTrigger: this value is flag to indicate that whether configuration happened or not
+     * @property isConfigurationTrigger: this value is a flag to indicate that whether configuration happened or not
      */
     private var lastTouchX = 0f
     private var lastTouchY = 0f
@@ -166,6 +166,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     fun setImageResource(@DrawableRes imageId: Int) {
         imageDrawable = ContextCompat.getDrawable(context, imageId)
         updateUserImageRect()
+        dragValueX = 0f
+        dragValueY = 0f
         invalidate()
     }
 
@@ -179,6 +181,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         Log.d(TAG, "setImageBitmap: imageAspectRatio: $imageAspectRatio")
         imageDrawable = imageUtils.createDrawableFromBitmap(bitmap)
         updateUserImageRect()
+        dragValueX = 0f
+        dragValueY = 0f
         invalidate()
     }
 
@@ -189,6 +193,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         }
         imageDrawable = drawable
         updateUserImageRect()
+        dragValueX = 0f
+        dragValueY = 0f
         invalidate()
     }
 
@@ -217,7 +223,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
         // Set the calculated values to imageRect
         imageRect.set(left, top, right, bottom)
-        Log.d(TAG, "updateUserImageRect: left: $left, top: $top, right: $right, bottom: $bottom")
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -262,13 +267,23 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
+
+        if (!imageRect.isEmpty){
+
+        }
+
         imageRect.setEmpty()
         viewRect.set(0f, 0f, width.toFloat(), height.toFloat())
         matrix.setRectToRect(backgroundRect, viewRect, Matrix.ScaleToFit.CENTER)
+        isConfigurationTrigger = true
+
+        Log.d(TAG, "onSizeChanged: is called")
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+
+        Log.d(TAG, "onDraw: is called")
 
         // Draw the background template image.
         backgroundBitmap?.let { canvas.drawBitmap(it, matrix, null) }
@@ -429,7 +444,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
                     // Ensure the selected image stays within the template bounds.
                     imageRect.offset(dx, dy)
-                    Log.d(TAG, "onTouchEvent: left: ${imageRect.left}, top: ${imageRect.top}, right: ${imageRect.right}, bottom: ${imageRect.bottom}")
                     // Update the last touch position.
                     lastTouchX = event.x
                     lastTouchY = event.y
@@ -467,6 +481,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private val gestureDetector: GestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDoubleTap(e: MotionEvent): Boolean {
             updateUserImageRect()
+            dragValueX = 0f
+            dragValueY = 0f
             return true
         }
     })
