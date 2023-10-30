@@ -119,6 +119,18 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var zoomCenterY = 0f
 
     /**
+     * @property originalFrameWidth: holds the frame width before the size of the view is changed
+     * @property originalUserImageWidth: holds the user image width before the size of the view is changed
+     * @property newFrameWidth: holds the width of the frame after the size of the view is changed
+     * @property newUserImageWidth: holds the width of the user image after the size of the view is changed.
+     */
+    private var originalFrameWidth = 0f
+    private var originalUserImageWidth = 0f
+    // Method to adjust drag values when the view is resized or visibility changes
+    private var newFrameWidth = 0f
+    private var newUserImageWidth = 0f
+
+    /**
      * Set Backgrounds
      */
     override fun setBackgroundResource(@DrawableRes resId: Int) {
@@ -165,6 +177,11 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     fun setImageResource(@DrawableRes imageId: Int) {
         imageDrawable = ContextCompat.getDrawable(context, imageId)
+
+        // We have to control/set the original width of the image to zero before the updateUserImageRect() function to show the full image in a frame, everytime user change the image
+        originalFrameWidth = 0f
+        originalUserImageWidth = 0f
+
         updateUserImageRect()
         dragValueX = 0f
         dragValueY = 0f
@@ -178,9 +195,14 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         }
         imageBitmap = bitmap
         imageAspectRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
-        Log.d(TAG, "setImageBitmap: imageAspectRatio: $imageAspectRatio")
         imageDrawable = imageUtils.createDrawableFromBitmap(bitmap)
+
+        // We have to control/set the original width of the image to zero before the updateUserImageRect() function to show the full image in a frame, everytime user change the image
+        originalFrameWidth = 0f
+        originalUserImageWidth = 0f
+
         updateUserImageRect()
+
         dragValueX = 0f
         dragValueY = 0f
         invalidate()
@@ -192,6 +214,11 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             return
         }
         imageDrawable = drawable
+
+        // We have to control/set the original width of the image to zero before the updateUserImageRect() function to show the full image in a frame, everytime user change the image
+        originalFrameWidth = 0f
+        originalUserImageWidth = 0f
+
         updateUserImageRect()
         dragValueX = 0f
         dragValueY = 0f
@@ -223,10 +250,18 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
         // Set the calculated values to imageRect
         imageRect.set(left, top, right, bottom)
+
+        // The below code is to ensure the drag position of the user selected image inside a frame.
+        originalFrameWidth = newFrameWidth
+        originalUserImageWidth = newUserImageWidth
+        newFrameWidth = imageRectFix.width()
+        newUserImageWidth = imageRect.width()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+
+        Log.d(TAG, "onMeasure: is called")
 
         val widthMode = MeasureSpec.getMode(widthMeasureSpec)
         val heightMode = MeasureSpec.getMode(heightMeasureSpec)
@@ -268,13 +303,11 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
-        if (!imageRect.isEmpty){
-
-        }
-
         imageRect.setEmpty()
         viewRect.set(0f, 0f, width.toFloat(), height.toFloat())
         matrix.setRectToRect(backgroundRect, viewRect, Matrix.ScaleToFit.CENTER)
+
+        // Here we make isConfigurationTrigger to true, bcz we want to perform operations everytime the size changed
         isConfigurationTrigger = true
 
         Log.d(TAG, "onSizeChanged: is called")
@@ -375,7 +408,15 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         // Clip the drawing of the selected image to the template bounds.
         canvas.clipRect(imageRectFix)
 
-        if (isConfigurationTrigger){
+        /**
+         * If, due to any reason, the view size has changed. and therefore,
+         * we have to make sure the dragX and dragY value according to size or ratio.
+         */
+        if (isConfigurationTrigger) {
+            if (originalFrameWidth != 0f && originalUserImageWidth != 0f) {
+                dragValueX *= newFrameWidth / originalFrameWidth
+                dragValueY *= newUserImageWidth / originalUserImageWidth
+            }
             if (dragValueX != 0f || dragValueY != 0f) imageRect.offset(dragValueX, dragValueY)
             isConfigurationTrigger = false
         }
@@ -387,9 +428,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     }
 
     override fun onSaveInstanceState(): Parcelable {
+        Log.d(TAG, "onSaveInstanceState: is called")
         val superState = super.onSaveInstanceState()
         return CustomViewState(superState).apply {
-            imageBitmapx = imageBitmap
+            //imageBitmapx = imageBitmap
             imageAspectRatiox = imageAspectRatio
             scaleFactorx = scaleFactor
             zoomCenterXx = zoomCenterX
@@ -400,9 +442,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     }
 
     override fun onRestoreInstanceState(state: Parcelable?) {
+        Log.d(TAG, "onRestoreInstanceState: is called")
         if (state is CustomViewState) {
             super.onRestoreInstanceState(state.superState)
-            imageBitmap = state.imageBitmapx as Bitmap
+            imageBitmap = state.imageBitmapx?.let { it as Bitmap }
             imageBitmap?.let { imageDrawable = imageUtils.createDrawableFromBitmap(it) }
             imageAspectRatio = state.imageAspectRatiox
             scaleFactor = state.scaleFactorx

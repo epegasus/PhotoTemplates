@@ -42,4 +42,5 @@ class MainActivity : AppCompatActivity() {
         binding.templateView.setBackgroundFromModel(dpTemplates.list[0])
         binding.templateView.setImageResource(R.drawable.img_pic)
     }
+
 }
