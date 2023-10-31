@@ -1,11 +1,12 @@
 package dev.pegasus.template.state
 
+import android.net.Uri
 import android.os.Parcel
 import android.os.Parcelable
 import android.view.View.BaseSavedState
 
 class CustomViewState : BaseSavedState {
-    var imageBitmapx: Parcelable? = null
+    var imageBitmapUrix: Uri? = null
     var imageAspectRatiox: Float = 0f
     var scaleFactorx: Float = 1f
     var zoomCenterXx: Float = 0f
@@ -16,7 +17,8 @@ class CustomViewState : BaseSavedState {
     constructor(superState: Parcelable?) : super(superState)
 
     constructor(parcel: Parcel) : super(parcel) {
-        imageBitmapx = parcel.readParcelable(javaClass.classLoader)
+        val uriString = parcel.readString()
+        imageBitmapUrix = if (uriString != null) Uri.parse(uriString) else null
         imageAspectRatiox = parcel.readFloat()
         scaleFactorx = parcel.readFloat()
         zoomCenterXx = parcel.readFloat()
@@ -27,7 +29,8 @@ class CustomViewState : BaseSavedState {
 
     override fun writeToParcel(out: Parcel, flags: Int) {
         super.writeToParcel(out, flags)
-        out.writeParcelable(imageBitmapx, 0)
+        out.writeString(imageBitmapUrix?.toString()) // Convert the Uri to a string
+        out.writeParcelable(imageBitmapUrix, flags)
         out.writeFloat(imageAspectRatiox)
         out.writeFloat(scaleFactorx)
         out.writeFloat(zoomCenterXx)

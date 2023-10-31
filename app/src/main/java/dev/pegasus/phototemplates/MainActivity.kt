@@ -20,10 +20,11 @@ class MainActivity : AppCompatActivity() {
     private val galleryLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             result.data?.data?.let {
-                this@MainActivity.contentResolver.openInputStream(it)?.use { inputStream ->
+                binding.templateView.setImageBitmap(it)
+                /*this@MainActivity.contentResolver.openInputStream(it)?.use { inputStream ->
                     val bitmap = BitmapFactory.decodeStream(inputStream)
                     binding.templateView.setImageBitmap(bitmap)
-                }
+                }*/
             }
         }
     }
