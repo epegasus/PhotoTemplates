@@ -20,10 +20,14 @@ import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toRect
 import androidx.core.net.toUri
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStoreOwner
 import dev.pegasus.template.dataClasses.TemplateModel
 import dev.pegasus.template.state.CustomViewState
 import dev.pegasus.template.utils.HelperUtils.TAG
 import dev.pegasus.template.utils.ImageUtils
+import dev.pegasus.template.viewModels.CustomViewViewModel
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 
 class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : View(context, attrs, defStyleAttr) {
@@ -34,13 +38,11 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      * @property backgroundBitmap: Bitmap of background of the template
      * @property imageDrawable: Drawable of the image provided by user (we need this ultimately)
      * @property imageBitmap: Holds the image the user select
-     * @property imageBitmapUri: Holds the uri of the user image, it will also used in screen configuration process
      */
 
     private var backgroundBitmap: Bitmap? = null
     private var imageBitmap: Bitmap? = null
     private var imageDrawable: Drawable? = null
-    private var imageBitmapUri: Uri? = null
 
     /**
      * @property viewRect: It's the main view named as "TemplateView"
@@ -137,6 +139,13 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var newUserImageWidth = 0f
 
     /**
+     * @property viewModel: holds the user selected image during configuration changes
+     */
+    private val viewModel: CustomViewViewModel by lazy {
+        ViewModelProvider(context as ViewModelStoreOwner)[CustomViewViewModel::class.java]
+    }
+
+    /**
      * Set Backgrounds
      */
     override fun setBackgroundResource(@DrawableRes resId: Int) {
@@ -194,12 +203,9 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         invalidate()
     }
 
-    fun setImageBitmap(imageUri: Uri?) {
-        imageBitmap = imageUri?.let {
-            imageBitmapUri = it
-            loadImageFromUri(it)
-        }
-        imageBitmap?.let {
+    fun setImageBitmap(bitmap: Bitmap?) {
+        bitmap?.let {
+            imageBitmap = it
             imageAspectRatio = it.width.toFloat() / it.height.toFloat()
             imageDrawable = imageUtils.createDrawableFromBitmap(it)
 
@@ -230,17 +236,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         dragValueX = 0f
         dragValueY = 0f
         invalidate()
-    }
-
-    // Function to load the image from URI and set it as the background
-    private fun loadImageFromUri(uri: Uri): Bitmap? {
-        return try {
-            val inputStream = context.contentResolver.openInputStream(uri)
-            BitmapFactory.decodeStream(inputStream)
-        } catch (e: IOException) {
-            e.printStackTrace()
-            null
-        }
     }
 
     private fun updateBackgroundRect() {
@@ -449,7 +444,9 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         Log.d(TAG, "onSaveInstanceState: is called")
         val superState = super.onSaveInstanceState()
         return CustomViewState(superState).apply {
-            imageBitmapUrix = imageBitmapUri
+            // Save the user selected image in a view model.
+            viewModel.updateImage(imageBitmap)
+
             imageAspectRatiox = imageAspectRatio
             scaleFactorx = scaleFactor
             zoomCenterXx = zoomCenterX
@@ -463,11 +460,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         Log.d(TAG, "onRestoreInstanceState: is called")
         if (state is CustomViewState) {
             super.onRestoreInstanceState(state.superState)
-            imageBitmap = state.imageBitmapUrix?.let {
-                imageBitmapUri = it
-                loadImageFromUri(it)
-            }
+            // Get the image from the view-model
+            imageBitmap = viewModel.getImage()
             imageBitmap?.let { imageDrawable = imageUtils.createDrawableFromBitmap(it) }
+
             imageAspectRatio = state.imageAspectRatiox
             scaleFactor = state.scaleFactorx
             zoomCenterX = state.zoomCenterXx
