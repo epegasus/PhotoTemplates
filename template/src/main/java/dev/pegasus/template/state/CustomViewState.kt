@@ -5,42 +5,32 @@ import android.os.Parcelable
 import android.view.View.BaseSavedState
 
 class CustomViewState : BaseSavedState {
-    var imageAspectRatiox: Float = 0f
-    var scaleFactorx: Float = 1f
-    var zoomCenterXx: Float = 0f
-    var zoomCenterYx: Float = 0f
-    var dxx: Float = 0f
-    var dyx: Float = 0f
+    var imageAspectRatio: Float = 0f
+    var scaleFactor: Float = 1f
+    var zoomCenterX: Float = 0f
+    var zoomCenterY: Float = 0f
+    var dx: Float = 0f
+    var dy: Float = 0f
 
     constructor(superState: Parcelable?) : super(superState)
 
     constructor(parcel: Parcel) : super(parcel) {
-        val uriString = parcel.readString()
-        imageAspectRatiox = parcel.readFloat()
-        scaleFactorx = parcel.readFloat()
-        zoomCenterXx = parcel.readFloat()
-        zoomCenterYx = parcel.readFloat()
-        dxx = parcel.readFloat()
-        dyx = parcel.readFloat()
+        imageAspectRatio = parcel.readFloat()
+        scaleFactor = parcel.readFloat()
+        zoomCenterX = parcel.readFloat()
+        zoomCenterY = parcel.readFloat()
+        dx = parcel.readFloat()
+        dy = parcel.readFloat()
     }
 
     override fun writeToParcel(out: Parcel, flags: Int) {
         super.writeToParcel(out, flags)
-        out.writeFloat(imageAspectRatiox)
-        out.writeFloat(scaleFactorx)
-        out.writeFloat(zoomCenterXx)
-        out.writeFloat(zoomCenterYx)
-        out.writeFloat(dxx)
-        out.writeFloat(dyx)
+        out.writeFloat(imageAspectRatio)
+        out.writeFloat(scaleFactor)
+        out.writeFloat(zoomCenterX)
+        out.writeFloat(zoomCenterY)
+        out.writeFloat(dx)
+        out.writeFloat(dy)
     }
 
-    companion object CREATOR : Parcelable.Creator<CustomViewState> {
-        override fun createFromParcel(parcel: Parcel): CustomViewState {
-            return CustomViewState(parcel)
-        }
-
-        override fun newArray(size: Int): Array<CustomViewState?> {
-            return arrayOfNulls(size)
-        }
-    }
 }

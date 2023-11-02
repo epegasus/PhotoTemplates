@@ -3,7 +3,7 @@ package dev.pegasus.template.viewModels
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 
-class CustomViewViewModel: ViewModel() {
+class TemplateViewModel: ViewModel() {
 
     private var imageBitmap: Bitmap? = null
 
