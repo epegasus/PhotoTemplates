@@ -24,6 +24,7 @@ import dev.pegasus.template.dataClasses.TemplateModel
 import dev.pegasus.template.state.CustomViewState
 import dev.pegasus.template.utils.HelperUtils.TAG
 import dev.pegasus.template.utils.ImageUtils
+import dev.pegasus.template.utils.RotationGestureDetector
 import dev.pegasus.template.viewModels.TemplateViewModel
 import kotlin.math.atan2
 
@@ -121,17 +122,18 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      * @property zoomCenterX: holds the zoom center x value for equal zooming on all sides
      * @property zoomCenterY: holds the zoom center y value for equal zooming on all sides
      */
-    private var rotateMatrix = Matrix()
-
-    private var angleDelta = 0f
-    private var lastAngle = 0f
-
     private var isZooming = false
-    private var isRotating = false
     private var startAngle = 0f
     private var scaleFactor = 0.5f
     private var zoomCenterX = 0f
     private var zoomCenterY = 0f
+
+
+    private var rotateMatrix = Matrix()
+    private var angleDelta = 0f
+    private var lastAngle = 0f
+    private var isRotating = false
+    private var cumulativeRotationAngle = 0f
 
     /**
      * @property originalFrameWidth: holds the frame width before the size of the view is changed
@@ -439,11 +441,9 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         // Set the bounds for the selected image drawable.
         imageDrawable?.bounds = imageRect.toRect()
 
-        if (isRotating) {
-            rotateMatrix.postRotate(angleDelta, zoomCenterX, zoomCenterY)
-            // Apply the rotation transformation
-            canvas.concat(rotateMatrix)
-        }
+        if (isRotating) isRotating = false
+
+        canvas.concat(rotateMatrix)
 
         imageDrawable?.draw(canvas)
     }
@@ -483,17 +483,14 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent?): Boolean {
-
-        event?.let {
-            Log.d(TAG, "onTouchEvent: isRotating value inside the first check is: $isRotating")
-            if (isRotating) motionEvent = it
-            scaleGestureDetector.onTouchEvent(it)
-        }
+        // Handle the two-finger zoom gesture
+        event?.let {scaleGestureDetector.onTouchEvent(it)}
+        // Handle the two-finger rotation gesture
+        event?.let { rotationGestureDetector.onTouchEvent(it) }
         // Check if a zoom gesture occurred and don't handle other touch events
         if (scaleGestureDetector.isInProgress) return true
-
         // Attach the double tap gesture detector
-        event?.let { gestureDetector.onTouchEvent(it) }
+        event?.let { doubleTapGestureDetector.onTouchEvent(it) }
 
         when (event?.action) {
             MotionEvent.ACTION_DOWN -> {
@@ -503,13 +500,11 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
                     lastTouchX = event.x
                     lastTouchY = event.y
                 }
-
-                setRotationAngles()
-                isRotating = false
-                Log.d(TAG, "onTouchEvent: Action_Down is called")
+                Log.d(TAG, "onTouchEvent: ACTION_DOWN")
+                motionEvent = event
             }
-
             MotionEvent.ACTION_MOVE -> {
+                Log.d(TAG, "onTouchEvent: ACTION_MOVE")
                 if (isDragging) {
                     // Calculate the distance moved.
                     val dx = event.x - lastTouchX
@@ -524,8 +519,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
                     lastTouchX = event.x
                     lastTouchY = event.y
 
-                    // We have to stop rotation if user starts dragging.
-                    isRotating = false
+                    if (motionEvent != null && motionEvent?.pointerCount == 2) {
+                        cumulativeRotationAngle += calculateRotationAngle(event, motionEvent!!)
+                        motionEvent = MotionEvent.obtainNoHistory(event)  // Store the current event for reference
+                    }
 
                     // Invalidate the view to trigger a redraw.
                     invalidate()
@@ -535,12 +532,29 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 isDragging = false
                 isRotating = false
-                Log.d(TAG, "onTouchEvent: action_up and action_cancel is called")
             }
         }
 
         // Consume the event to indicate that it's been handled.
         return true
+    }
+
+    private fun calculateRotationAngle(event1: MotionEvent, event2: MotionEvent): Float {
+        return try {
+            val startDeltaX = event1.getX(0) - event1.getX(1)
+            val startDeltaY = event1.getY(0) - event1.getY(1)
+            val startAngle = atan2(startDeltaY.toDouble(), startDeltaX.toDouble())
+
+            val endDeltaX = event2.getX(0) - event2.getX(1)
+            val endDeltaY = event2.getY(0) - event2.getY(1)
+            val endAngle = atan2(endDeltaY.toDouble(), endDeltaX.toDouble())
+
+            Math.toDegrees(endAngle - startAngle).toFloat()
+        }
+        catch (ex: Exception){
+            ex.printStackTrace()
+            return 0f
+        }
     }
 
     // Initialize a scale gesture detector for pinch-to-zoom
@@ -555,45 +569,33 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             scaleFactor *= detector.scaleFactor
             scaleFactor = 0.5f.coerceAtLeast(scaleFactor.coerceAtMost(4f))
             isZooming = true
-            isRotating = true
-
-            // we have to check for angles of rotation along with scale
-            setRotationAngles()
 
             invalidate()
             return true
         }
-
-        override fun onScaleEnd(detector: ScaleGestureDetector) {
-            isRotating = false
-            Log.d(TAG, "onScaleEnd: isRotating set to false")
-        }
     })
 
     // Initialize a gesture detector for double-tap
-    private val gestureDetector: GestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+    private val doubleTapGestureDetector: GestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDoubleTap(e: MotionEvent): Boolean {
             updateUserImageRect()
             dragValueX = 0f
             dragValueY = 0f
+            rotateMatrix = Matrix()
             return true
         }
     })
 
-    private fun setRotationAngles(){
-        motionEvent?.let {
-            try {
-                val dx = it.getX(0) - it.getX(1)
-                val dy = it.getY(0) - it.getY(1)
-                val newAngle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
-
-                angleDelta = newAngle - lastAngle
-                lastAngle = newAngle
-            }
-            catch (ex: Exception){
-                ex.printStackTrace()
-            }
+    // Initialize a rotation detector
+    private val rotationGestureDetector = RotationGestureDetector(object : RotationGestureDetector.OnRotationGestureListener {
+        override fun onRotation(rotationAngle: Float, cumulativeAngle: Float) {
+            // Handle the rotation gesture here.
+            // You can apply the rotation transformation to your image.
+            rotateMatrix.postRotate(rotationAngle, zoomCenterX, zoomCenterY)
+            cumulativeRotationAngle = cumulativeAngle
+            isRotating = true
+            invalidate()
         }
-    }
+    })
 
 }
