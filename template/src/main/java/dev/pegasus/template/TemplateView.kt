@@ -8,7 +8,6 @@ import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
-import android.net.Uri
 import android.os.Parcelable
 import android.util.AttributeSet
 import android.util.Log
@@ -19,19 +18,19 @@ import android.view.View
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toRect
-import androidx.core.net.toUri
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import dev.pegasus.template.dataClasses.TemplateModel
-import dev.pegasus.template.state.CustomViewState
+import dev.pegasus.template.state.CustomSavedState
 import dev.pegasus.template.utils.HelperUtils.TAG
 import dev.pegasus.template.utils.ImageUtils
-import dev.pegasus.template.viewModels.CustomViewViewModel
-import java.io.ByteArrayOutputStream
-import java.io.IOException
+import dev.pegasus.template.viewModels.TemplateViewModel
 
 class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : View(context, attrs, defStyleAttr) {
 
+    /**
+     * @property imageUtils: Util class holds many helper methods.
+     */
     private val imageUtils by lazy { ImageUtils(context) }
 
     /**
@@ -134,6 +133,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      */
     private var originalFrameWidth = 0f
     private var originalUserImageWidth = 0f
+
     // Method to adjust drag values when the view is resized or visibility changes
     private var newFrameWidth = 0f
     private var newUserImageWidth = 0f
@@ -141,8 +141,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     /**
      * @property viewModel: holds the user selected image during configuration changes
      */
-    private val viewModel: CustomViewViewModel by lazy {
-        ViewModelProvider(context as ViewModelStoreOwner)[CustomViewViewModel::class.java]
+    private val viewModel: TemplateViewModel by lazy {
+        ViewModelProvider(context as ViewModelStoreOwner)[TemplateViewModel::class.java]
     }
 
     /**
@@ -443,33 +443,33 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     override fun onSaveInstanceState(): Parcelable {
         Log.d(TAG, "onSaveInstanceState: is called")
         val superState = super.onSaveInstanceState()
-        return CustomViewState(superState).apply {
+        return CustomSavedState(superState).apply {
             // Save the user selected image in a view model.
             viewModel.updateImage(imageBitmap)
 
-            imageAspectRatiox = imageAspectRatio
-            scaleFactorx = scaleFactor
-            zoomCenterXx = zoomCenterX
-            zoomCenterYx = zoomCenterY
-            dxx = dragValueX
-            dyx = dragValueY
+            this.imageAspectRatio = this@TemplateView.imageAspectRatio
+            this.scaleFactor = this@TemplateView.scaleFactor
+            this.zoomCenterX = this@TemplateView.zoomCenterX
+            this.zoomCenterY = this@TemplateView.zoomCenterY
+            this.dx = this@TemplateView.dragValueX
+            this.dy = this@TemplateView.dragValueY
         }
     }
 
     override fun onRestoreInstanceState(state: Parcelable?) {
         Log.d(TAG, "onRestoreInstanceState: is called")
-        if (state is CustomViewState) {
+        if (state is CustomSavedState) {
             super.onRestoreInstanceState(state.superState)
             // Get the image from the view-model
             imageBitmap = viewModel.getImage()
             imageBitmap?.let { imageDrawable = imageUtils.createDrawableFromBitmap(it) }
 
-            imageAspectRatio = state.imageAspectRatiox
-            scaleFactor = state.scaleFactorx
-            zoomCenterX = state.zoomCenterXx
-            zoomCenterY = state.zoomCenterYx
-            dragValueX = state.dxx
-            dragValueY = state.dyx
+            imageAspectRatio = state.imageAspectRatio
+            scaleFactor = state.scaleFactor
+            zoomCenterX = state.zoomCenterX
+            zoomCenterY = state.zoomCenterY
+            dragValueX = state.dx
+            dragValueY = state.dy
             isConfigurationTrigger = true
         } else super.onRestoreInstanceState(state)
     }
@@ -546,5 +546,4 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             return true
         }
     })
-
 }

@@ -7,18 +7,14 @@ import android.provider.MediaStore
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelStoreOwner
 import dev.pegasus.phototemplates.databinding.ActivityMainBinding
-import dev.pegasus.template.dataClasses.TemplateModel
 import dev.pegasus.template.dataProviders.DpTemplates
-import dev.pegasus.template.viewModels.CustomViewViewModel
+import dev.pegasus.template.viewModels.TemplateViewModel
 
-class MainActivity : AppCompatActivity(), ViewModelStoreOwner {
+class MainActivity : AppCompatActivity() {
 
     private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     private val dpTemplates by lazy { DpTemplates() }
-    private lateinit var viewModel: CustomViewViewModel
 
     // Initialize the galleryLauncher
     private val galleryLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -36,8 +32,6 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
-        viewModel = ViewModelProvider(this)[CustomViewViewModel::class.java]
-
         initView()
 
         binding.btnChangeBackground.setOnClickListener { binding.view.isVisible = !binding.view.isVisible }
@@ -48,5 +42,4 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner {
         binding.templateView.setBackgroundFromModel(dpTemplates.list[0])
         binding.templateView.setImageResource(R.drawable.img_pic)
     }
-
 }
