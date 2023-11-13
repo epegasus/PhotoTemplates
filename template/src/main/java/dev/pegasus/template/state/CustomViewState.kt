@@ -11,6 +11,7 @@ class CustomViewState : BaseSavedState {
     var zoomCenterY: Float = 0f
     var dx: Float = 0f
     var dy: Float = 0f
+    var rotationAngle: Float = 0f
 
     constructor(superState: Parcelable?) : super(superState)
 
@@ -21,6 +22,7 @@ class CustomViewState : BaseSavedState {
         zoomCenterY = parcel.readFloat()
         dx = parcel.readFloat()
         dy = parcel.readFloat()
+        rotationAngle = parcel.readFloat()
     }
 
     override fun writeToParcel(out: Parcel, flags: Int) {
@@ -31,6 +33,7 @@ class CustomViewState : BaseSavedState {
         out.writeFloat(zoomCenterY)
         out.writeFloat(dx)
         out.writeFloat(dy)
+        out.writeFloat(rotationAngle)
     }
 
 }

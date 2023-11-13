@@ -5,12 +5,12 @@ import kotlin.math.atan2
 
 class RotationGestureDetector(private val listener: OnRotationGestureListener) {
     interface OnRotationGestureListener {
-        fun onRotation(rotationAngle: Float, cumulativeAngle: Float)
+        fun onRotation(rotationAngle: Float)
     }
 
     private var angleDelta = 0f
     private var lastAngle = 0f
-    private var cumulativeRotation = 0f
+    private var cumulativeAngle = 0f
 
     fun onTouchEvent(event: MotionEvent?) {
         when (event?.actionMasked) {
@@ -21,8 +21,8 @@ class RotationGestureDetector(private val listener: OnRotationGestureListener) {
                 val newAngle = getAngle(event)
                 angleDelta = newAngle - lastAngle
                 lastAngle = newAngle
-                cumulativeRotation += angleDelta
-                listener.onRotation(angleDelta, cumulativeRotation)
+                cumulativeAngle += angleDelta
+                listener.onRotation(cumulativeAngle)
             }
         }
     }
@@ -42,4 +42,5 @@ class RotationGestureDetector(private val listener: OnRotationGestureListener) {
             return lastAngle
         }
     }
+
 }
