@@ -37,7 +37,7 @@ class RotationGestureDetector(private val listener: OnRotationGestureListener) {
                 lastAngle
             }
         }
-        catch (ex: Exception){
+        catch (ex: IllegalArgumentException){
             ex.printStackTrace()
             return lastAngle
         }
