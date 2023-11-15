@@ -3,15 +3,16 @@ package dev.pegasus.template.viewModels
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 
-class TemplateViewModel : ViewModel() {
+class TemplateViewModel: ViewModel() {
 
     private var imageBitmap: Bitmap? = null
 
-    fun updateImage(bitmap: Bitmap?) {
+    fun updateImage(bitmap: Bitmap?){
         imageBitmap = bitmap
     }
 
-    fun getImage(): Bitmap? {
+    fun getImage(): Bitmap?{
         return imageBitmap
     }
+
 }

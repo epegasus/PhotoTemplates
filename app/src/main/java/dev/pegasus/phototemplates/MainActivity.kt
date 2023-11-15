@@ -7,14 +7,17 @@ import android.provider.MediaStore
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStoreOwner
 import dev.pegasus.phototemplates.databinding.ActivityMainBinding
 import dev.pegasus.template.dataProviders.DpTemplates
 import dev.pegasus.template.viewModels.TemplateViewModel
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), ViewModelStoreOwner {
 
     private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     private val dpTemplates by lazy { DpTemplates() }
+    private lateinit var viewModel: TemplateViewModel
 
     // Initialize the galleryLauncher
     private val galleryLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -32,6 +35,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
+        viewModel = ViewModelProvider(this)[TemplateViewModel::class.java]
+
         initView()
 
         binding.btnChangeBackground.setOnClickListener { binding.view.isVisible = !binding.view.isVisible }
@@ -42,4 +47,5 @@ class MainActivity : AppCompatActivity() {
         binding.templateView.setBackgroundFromModel(dpTemplates.list[0])
         binding.templateView.setImageResource(R.drawable.img_pic)
     }
+
 }
