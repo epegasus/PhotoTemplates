@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Matrix
+import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.os.Parcelable
@@ -21,6 +22,7 @@ import androidx.core.graphics.toRect
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import dev.pegasus.template.dataClasses.TemplateModel
+import dev.pegasus.template.dataClasses.TemplateType
 import dev.pegasus.template.state.CustomViewState
 import dev.pegasus.template.utils.HelperUtils.TAG
 import dev.pegasus.template.utils.ImageUtils
@@ -30,6 +32,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.lang.Float.min
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : View(context, attrs, defStyleAttr) {
 
@@ -55,12 +60,13 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      * @property backgroundRect: Coordinates of the background of current template
      * @property imageRect: Coordinates of the user's image (mutable)
      * @property imageRectFix: Coordinates of the user's image (immutable)
+     * @property clipPath: It will be used for a circular templates
      */
-
     private val viewRect = RectF()
     private val backgroundRect = RectF()
     private val imageRect = RectF()
     private var imageRectFix = RectF()
+    private val clipPath = Path()
 
     /**
      * @property templateModel: Complete specifications for a template
@@ -74,7 +80,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      * @property isDragging: Check if user's image can be drag-able (depends on touch events)
      * @property dragValueX: Save the overall x-axis drag value, so to keep the user image in-place after screen configuration
      * @property dragValueY: Save the overall y-axis drag value, so to keep the user image inplace after screen configuration
-     * @property isConfigurationTrigger: this value is a flag to indicate that whether configuration happened or not. It also used as an indicator for view size changed event
+     * @property isConfigurationTrigger: this value is a flag to indicate that whether configuration happened or not.
+     * @property isViewResized: It used as an indicator for view size changed event
      */
     private var lastTouchX = 0f
     private var lastTouchY = 0f
@@ -82,6 +89,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var dragValueX = 0f
     private var dragValueY = 0f
     private var isConfigurationTrigger = false
+    private var isViewResized = false
 
     /**
      * @property matrix: This matrix object is used to scale the background template according to the device screen and maintain the aspect ratio
@@ -206,7 +214,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     /**
      * Set User Images
      */
-
     fun setImageResource(@DrawableRes imageId: Int) {
         imageDrawable = ContextCompat.getDrawable(context, imageId)
 
@@ -382,8 +389,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         viewRect.set(0f, 0f, width.toFloat(), height.toFloat())
         matrix.setRectToRect(backgroundRect, viewRect, Matrix.ScaleToFit.CENTER)
 
-        // Here we make isConfigurationTrigger to true, bcz we want to perform operations everytime the size changed
-        isConfigurationTrigger = true
+        // Here we make isViewResized to true, bcz we want to perform operations everytime the size changed
+        isViewResized = true
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -395,10 +402,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
         if (imageRect.isEmpty) {
             coroutineScope.launch {
-                Log.d(TAG, "onDraw: second coroutine is launched")
                 setImageFixRectangle()
                 updateUserImageRect()
-                Log.d(TAG, "onDraw: second coroutine is finished")
                 invalidate()
             }
         }
@@ -406,20 +411,39 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
          * If, due to any reason, the view size has changed. and therefore,
          * we have to make sure the dragX and dragY value according to size or ratio.
          */
+
         if (isConfigurationTrigger) {
+            updateMatrix()
+            isConfigurationTrigger = false
+        }
+
+        /*if (isViewResized){
             if (originalFrameWidth != 0f && originalUserImageWidth != 0f) {
                 dragValueX *= newFrameWidth / originalFrameWidth
                 dragValueY *= newUserImageWidth / originalUserImageWidth
             }
             if (dragValueX != 0f || dragValueY != 0f) imageRect.offset(dragValueX, dragValueY)
-            isConfigurationTrigger = false
-        }
+            isViewResized = false
+        }*/
 
         // Save the current state of the canvas
         canvas.save()
 
         // Clip the drawing of the selected image to the template bounds.
-        canvas.clipRect(imageRectFix)
+        if (templateModel?.frameType == TemplateType.Rectangle) canvas.clipRect(imageRectFix)
+        else if (templateModel?.frameType == TemplateType.Circle){
+            // Set up the circular clip path
+            val centerX = imageRectFix.centerX()
+            val centerY = imageRectFix.centerY()
+            val width = imageRectFix.width()
+            val height = imageRectFix.height()
+
+            // Calculate the radius as half of the smaller dimension (width or height)
+            val radius = min(imageRectFix.width() / 2f, imageRectFix.height() / 2f)
+
+            clipPath.addCircle(centerX, centerY, radius, Path.Direction.CW)
+            canvas.clipPath(clipPath)
+        }
 
         // Apply the matrix for zooming, rotation, and translation
         canvas.concat(imageMatrix)
@@ -447,9 +471,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             dx = dragValueX
             dy = dragValueY
             rotationAngle = rotationAngleDelta
-
-            Log.d(TAG, "onSaveInstanceState: zoomCenterX: $zoomCenterX")
-            Log.d(TAG, "onSaveInstanceState: zoomCenterY: $zoomCenterY")
         }
     }
 
@@ -473,22 +494,22 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     private fun updateMatrix() {
         Log.d(TAG, "updateMatrix: is called")
-            // Assuming you have variables for scale, rotation, and translation
-            val matrix = Matrix()
-            // Apply scaling
-            if (zoomCenterX != 0f || zoomCenterY != 0f) matrix.postScale(zoomScaleFactor, zoomScaleFactor, zoomCenterX, zoomCenterY)
-            // Apply rotation
-            if (rotationAngleDelta != 0f && (zoomCenterX != 0f || zoomCenterY != 0f)) matrix.postRotate(rotationAngleDelta, zoomCenterX, zoomCenterY)
-            else if (rotationAngleDelta != 0f) matrix.postRotate(rotationAngleDelta, imageRectFix.width() / 2f, imageRectFix.height() / 2f)
+        // Assuming you have variables for scale, rotation, and translation
+        val matrix = Matrix()
+        // Apply scaling
+        if (zoomCenterX != 0f || zoomCenterY != 0f) matrix.postScale(zoomScaleFactor, zoomScaleFactor, zoomCenterX, zoomCenterY)
+        // Apply rotation
+        if (rotationAngleDelta != 0f && (zoomCenterX != 0f || zoomCenterY != 0f)) matrix.postRotate(rotationAngleDelta, zoomCenterX, zoomCenterY)
+        else if (rotationAngleDelta != 0f) matrix.postRotate(rotationAngleDelta, imageRectFix.width() / 2f, imageRectFix.height() / 2f)
 
-            // Apply translation (dragging)
-            if (isDragging) matrix.postTranslate(dragValueX, dragValueY)
+        // Apply translation (dragging)
+        if (isDragging) matrix.postTranslate(dragValueX, dragValueY)
 
-            // Set the matrix for your custom view
-            imageMatrix = matrix
+        // Set the matrix for your custom view
+        imageMatrix = matrix
 
-            // Trigger a redraw
-            invalidate()
+        // Trigger a redraw
+        invalidate()
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -581,6 +602,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
                 zoomCenterY = 0f
                 cumulativeScaleFactor = 1f
                 imageMatrix.reset()
+                rotationGestureDetector.resetRotation()
                 invalidate()
             }
             return true

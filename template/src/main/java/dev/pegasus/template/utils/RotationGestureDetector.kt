@@ -3,7 +3,7 @@ package dev.pegasus.template.utils
 import android.view.MotionEvent
 import kotlin.math.atan2
 
-class RotationGestureDetector(private val listener: OnRotationGestureListener) {
+class RotationGestureDetector(private val listener: OnRotationGestureListener? = null) {
     interface OnRotationGestureListener {
         fun onRotation(rotationAngle: Float)
     }
@@ -22,7 +22,7 @@ class RotationGestureDetector(private val listener: OnRotationGestureListener) {
                 angleDelta = newAngle - lastAngle
                 lastAngle = newAngle
                 cumulativeAngle += angleDelta
-                listener.onRotation(cumulativeAngle)
+                listener?.onRotation(cumulativeAngle)
             }
         }
     }
@@ -41,6 +41,12 @@ class RotationGestureDetector(private val listener: OnRotationGestureListener) {
             ex.printStackTrace()
             return lastAngle
         }
+    }
+
+    fun resetRotation(){
+        angleDelta = 0f
+        lastAngle = 0f
+        cumulativeAngle = 0f
     }
 
 }

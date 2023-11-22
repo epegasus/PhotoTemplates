@@ -15,6 +15,15 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!--<dev.pegasus.template.ComponentTemplateView
+        android:id="@+id/componentTemplateView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toStartOf="@+id/view"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />-->
+
     <View
         android:id="@+id/view"
         android:layout_width="100dp"
@@ -23,8 +32,8 @@
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@+id/templateView"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/templateView"
-        tools:visibility="visible" />
+        app:layout_constraintStart_toEndOf="@id/templateView"
+        app:layout_constraintTop_toTopOf="@+id/templateView"/>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_changeBackground"
