@@ -2,6 +2,7 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
+    id("kotlin-kapt")
 }
 
 android {
@@ -31,11 +32,13 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        dataBinding = true
     }
 }
 
 dependencies {
     implementation(project(":template"))
+    implementation(project(":stickers"))
 
     implementation(libs.core.ktx)
     implementation(libs.appcompat)

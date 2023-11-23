@@ -15,6 +15,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <dev.pegasus.stickers.StickerView
+        android:id="@+id/stickerView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="8dp"
+        app:layout_constraintBottom_toTopOf="@id/btn_changeBackground"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:showBorder="true"
+        app:showIcons="true" />
+
     <!--<dev.pegasus.template.ComponentTemplateView
         android:id="@+id/componentTemplateView"
         android:layout_width="0dp"
@@ -48,9 +60,18 @@
         android:id="@+id/btn_selectPhoto"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@id/btn_addSticker"
         app:layout_constraintEnd_toStartOf="@id/btn_changeBackground"
         app:layout_constraintBottom_toBottomOf="parent"
         android:text="@string/select_photo"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_addSticker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btn_selectPhoto"
+        android:text="@string/add_sticker"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -14,5 +14,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Photo Templates"
-include(":app")
+include(":app", "")
 include(":template")
+include(":stickers")
