@@ -1,4 +1,4 @@
-package dev.pegasus.phototemplates.dialogs
+package dev.pegasus.phototemplates.ui.dialogs
 
 import android.app.Dialog
 import android.content.Context
@@ -12,7 +12,7 @@ import android.view.ViewGroup
 import android.view.Window
 import android.view.inputmethod.InputMethodManager
 import androidx.fragment.app.DialogFragment
-import dev.pegasus.phototemplates.clickListeners.OnTextDoneClickListener
+import dev.pegasus.phototemplates.commons.listeners.OnTextDoneClickListener
 import dev.pegasus.phototemplates.databinding.DialogTextBoxBinding
 
 class DialogTextBox : DialogFragment() {

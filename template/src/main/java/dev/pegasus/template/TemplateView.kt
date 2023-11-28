@@ -22,7 +22,7 @@ import androidx.core.graphics.toRect
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import dev.pegasus.template.dataClasses.TemplateModel
-import dev.pegasus.template.dataClasses.TemplateType
+import dev.pegasus.template.dataClasses.FrameType
 import dev.pegasus.template.state.CustomViewState
 import dev.pegasus.template.utils.HelperUtils.TAG
 import dev.pegasus.template.utils.ImageUtils
@@ -33,8 +33,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.lang.Float.min
-import kotlin.math.pow
-import kotlin.math.sqrt
 
 class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : View(context, attrs, defStyleAttr) {
 
@@ -65,7 +63,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private val viewRect = RectF()
     private val backgroundRect = RectF()
     private val imageRect = RectF()
-    private var imageRectFix = RectF()
+    private val imageRectFix = RectF()
     private val clipPath = Path()
 
     /**
@@ -187,6 +185,11 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         templateModel = model
         backgroundBitmap = BitmapFactory.decodeResource(resources, model.bgImage)
         updateBackgroundRect()
+
+        // To again, get the frame coordinates
+        imageRect.setEmpty()
+        imageRectFix.setEmpty()
+
         invalidate()
     }
 
@@ -297,10 +300,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             imageRect.set(left, top, right, bottom)
 
             // The below code is to ensure the drag position of the user selected image inside a frame.
-            originalFrameWidth = newFrameWidth
+            /*originalFrameWidth = newFrameWidth
             originalUserImageWidth = newUserImageWidth
             newFrameWidth = imageRectFix.width()
-            newUserImageWidth = imageRect.width()
+            newUserImageWidth = imageRect.width()*/
 
         }.join()
 
@@ -323,8 +326,18 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
             // Calculate the coordinates for the user's image space based on the device's screen size
             templateModel?.let {
-                val userImageSpaceWidth = transformedWidth * (it.frameWidth / it.width)
-                val userImageSpaceHeight = transformedHeight * (it.frameHeight / it.height)
+
+                val scaleFactor = if (it.width > it.height) {
+                    transformedWidth / it.width
+                } else {
+                    transformedHeight / it.height
+                }
+                val userImageSpaceWidth = it.frameWidth * scaleFactor
+                val userImageSpaceHeight = it.frameHeight * scaleFactor
+
+
+                //val userImageSpaceWidth = transformedWidth * (it.frameWidth / it.width)
+                //val userImageSpaceHeight = transformedHeight * (it.frameHeight / it.height)
                 val userImageSpaceX = transformedWidth * (it.frameX / it.width)
                 val userImageSpaceY = transformedHeight * (it.frameY / it.height)
 
@@ -386,7 +399,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         Log.d(TAG, "onSizeChanged: is called")
 
         imageRect.setEmpty()
-        viewRect.set(0f, 0f, width.toFloat(), height.toFloat())
+        viewRect.set(0f, 0f, w.toFloat(), h.toFloat())
         matrix.setRectToRect(backgroundRect, viewRect, Matrix.ScaleToFit.CENTER)
 
         // Here we make isViewResized to true, bcz we want to perform operations everytime the size changed
@@ -401,22 +414,18 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         backgroundBitmap?.let { canvas.drawBitmap(it, matrix, null) }
 
         if (imageRect.isEmpty) {
+            Log.d(TAG, "onDraw: imageRect is empty")
             coroutineScope.launch {
                 setImageFixRectangle()
                 updateUserImageRect()
                 invalidate()
             }
         }
+
         /**
          * If, due to any reason, the view size has changed. and therefore,
          * we have to make sure the dragX and dragY value according to size or ratio.
          */
-
-        if (isConfigurationTrigger) {
-            updateMatrix()
-            isConfigurationTrigger = false
-        }
-
         /*if (isViewResized){
             if (originalFrameWidth != 0f && originalUserImageWidth != 0f) {
                 dragValueX *= newFrameWidth / originalFrameWidth
@@ -426,12 +435,17 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             isViewResized = false
         }*/
 
+        if (isConfigurationTrigger) {
+            updateMatrix()
+            isConfigurationTrigger = false
+        }
+
         // Save the current state of the canvas
         canvas.save()
 
         // Clip the drawing of the selected image to the template bounds.
-        if (templateModel?.frameType == TemplateType.Rectangle) canvas.clipRect(imageRectFix)
-        else if (templateModel?.frameType == TemplateType.Circle){
+        if (templateModel?.frameType == FrameType.Rectangle) canvas.clipRect(imageRectFix)
+        else if (templateModel?.frameType == FrameType.Circle) {
             // Set up the circular clip path
             val centerX = imageRectFix.centerX()
             val centerY = imageRectFix.centerY()
@@ -439,7 +453,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             val height = imageRectFix.height()
 
             // Calculate the radius as half of the smaller dimension (width or height)
-            val radius = min(imageRectFix.width() / 2f, imageRectFix.height() / 2f)
+            val radius = min(width / 2f, height / 2f)
+
+            // Reset the clipPath before adding a new circle
+            clipPath.reset()
 
             clipPath.addCircle(centerX, centerY, radius, Path.Direction.CW)
             canvas.clipPath(clipPath)
@@ -541,11 +558,13 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
                     lastTouchY = event.y
                 }
             }
+
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 isDragging = false
                 isRotating = false
                 isZooming = false
             }
+
             MotionEvent.ACTION_MOVE -> {
                 if (isDragging && !isZooming) {
                     Log.d(TAG, "onTouchEvent: ACTION_MOVE is called")

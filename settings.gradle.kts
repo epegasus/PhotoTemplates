@@ -17,3 +17,4 @@ rootProject.name = "Photo Templates"
 include(":app", "")
 include(":template")
 include(":stickers")
+include(":regret")

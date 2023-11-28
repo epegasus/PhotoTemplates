@@ -1,4 +1,4 @@
-package dev.pegasus.phototemplates.clickListeners
+package dev.pegasus.phototemplates.commons.listeners
 
 interface OnTextDoneClickListener {
     fun onDoneText(text: String, isUpdate: Boolean)

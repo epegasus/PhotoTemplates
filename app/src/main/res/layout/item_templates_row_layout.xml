@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+        <variable
+            name="model"
+            type="dev.pegasus.template.dataClasses.TemplateModel" />
+        <variable
+            name="itemClick"
+            type="dev.pegasus.phototemplates.commons.listeners.OnTemplateItemClickListener" />
+    </data>
+
+<androidx.constraintlayout.utils.widget.ImageFilterView
+    android:layout_width="70dp"
+    android:layout_height="?actionBarSize"
+    android:id="@+id/iv_Template"
+    tools:src="@drawable/img_pic"
+    templateThumbnail="@{model.thumbnailImage}"
+    rapidSafeClick="@{() -> itemClick.onItemClick(model)}"/>
+
+</layout>
