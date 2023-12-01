@@ -34,12 +34,12 @@ class RotationGestureDetector(private val listener: OnRotationGestureListener? =
                 val dy = it.getY(0) - it.getY(1)
                 Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
             } ?: run {
-                lastAngle
+                angleDelta
             }
         }
         catch (ex: IllegalArgumentException){
             ex.printStackTrace()
-            return lastAngle
+            return angleDelta
         }
     }
 

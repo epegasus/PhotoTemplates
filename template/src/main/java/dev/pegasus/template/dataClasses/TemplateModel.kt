@@ -6,6 +6,7 @@ data class TemplateModel(
     val frameType: FrameType,
     val thumbnailImage: Int,
     val bgImage: Int,
+    val template: Int,
     val width: Float,
     val height: Float,
     val frameWidth: Float,

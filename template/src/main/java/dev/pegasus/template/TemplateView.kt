@@ -1,5 +1,6 @@
 package dev.pegasus.template
 
+import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
@@ -33,6 +34,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.lang.Float.min
+import kotlin.math.atan2
 
 class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : View(context, attrs, defStyleAttr) {
 
@@ -40,12 +42,14 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     /**
      * @property backgroundBitmap: Bitmap of background of the template
+     * @property templateBitmap: Transparent template
      * @property imageDrawable: Drawable of the image provided by user (we need this ultimately)
      * @property imageBitmap: Holds the image the user select
      * @property imageMatrix: use to handle the zooming and rotation functionality of the user image
      */
 
     private var backgroundBitmap: Bitmap? = null
+    private var templateBitmap: Bitmap? = null
     private var imageBitmap: Bitmap? = null
     private var imageDrawable: Drawable? = null
     private var imageMatrix = Matrix()
@@ -96,6 +100,9 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private val matrix = Matrix()
     private val matrixValues = FloatArray(9)
 
+    // This matrix will temporarily holds the zooming, rotation and dragging values
+    private val transformationMatrix = Matrix()
+
     /**
      * @property deviceScreenHeight: It saves the device screen height value, and we use it in onMeasure function, for properly locating our custom view
      * @property deviceScreenWidth: It saves the device screen width value, and we use it in onMeasure function to properly locate our custom view on the device screen
@@ -111,7 +118,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      * @property transformedWidth: It holds the width value of the background template after scaling by the matrix
      * @property transformedHeight: It holds the height value of the background template after scaling by the matrix
      */
-    // Calculate the transformed dimensions of imageRect
     private var transformedWidth = 0f
     private var transformedHeight = 0f
 
@@ -121,7 +127,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      * @property transformedRight: This holds the right value of the frame (where we want to show the user image) inside a background template
      * @property transformedBottom: This holds the bottom value of the frame (where we want to show the user image) inside a background template
      */
-    // Calculate the left, top, right, and bottom values of the transformed imageRect
     private var transformedLeft = 0f
     private var transformedTop = 0f
     private var transformedRight = 0f
@@ -139,14 +144,18 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      * @property isRotating: indicator for a rotating feature of the image
      */
     private var isZooming = false
-    private var zoomScaleFactor = 0f
+    private var zoomScaleFactor = 1.0f
+    private val maxScaleFactor = 4.0f
+    private val minScaleFactor = 0.5f
     private var zoomCenterX = 0f
     private var zoomCenterY = 0f
     private var focusShiftX = 0f
     private var focusShiftY = 0f
-    private var cumulativeScaleFactor = 1f
-    private var rotationAngleDelta = 0f
+
     private var isRotating = false
+    private var rotationAngleDelta = 0f
+    private var lastAngle = 0f
+    private var cumulativeAngle = 0f
 
     /**
      * @property originalFrameWidth: holds the frame width before the size of the view is changed
@@ -184,12 +193,15 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         // Extract the necessary data from the model and set the background accordingly
         templateModel = model
         backgroundBitmap = BitmapFactory.decodeResource(resources, model.bgImage)
-        updateBackgroundRect()
+        templateBitmap = BitmapFactory.decodeResource(resources, model.template)
 
         // To again, get the frame coordinates
         imageRect.setEmpty()
         imageRectFix.setEmpty()
 
+        updateBackgroundRect()
+
+        requestLayout()
         invalidate()
     }
 
@@ -272,6 +284,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     private fun updateBackgroundRect() {
         backgroundBitmap?.let { backgroundRect.set(0f, 0f, it.width.toFloat(), it.height.toFloat()) }
+
+        // To ensure correct positioning everytime the template changed
+        matrix.reset()
+
         matrix.setRectToRect(backgroundRect, viewRect, Matrix.ScaleToFit.CENTER)
     }
 
@@ -298,12 +314,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
             // Set the calculated values to imageRect
             imageRect.set(left, top, right, bottom)
-
-            // The below code is to ensure the drag position of the user selected image inside a frame.
-            /*originalFrameWidth = newFrameWidth
-            originalUserImageWidth = newUserImageWidth
-            newFrameWidth = imageRectFix.width()
-            newUserImageWidth = imageRect.width()*/
 
         }.join()
 
@@ -334,10 +344,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
                 }
                 val userImageSpaceWidth = it.frameWidth * scaleFactor
                 val userImageSpaceHeight = it.frameHeight * scaleFactor
-
-
-                //val userImageSpaceWidth = transformedWidth * (it.frameWidth / it.width)
-                //val userImageSpaceHeight = transformedHeight * (it.frameHeight / it.height)
                 val userImageSpaceX = transformedWidth * (it.frameX / it.width)
                 val userImageSpaceY = transformedHeight * (it.frameY / it.height)
 
@@ -400,6 +406,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
         imageRect.setEmpty()
         viewRect.set(0f, 0f, w.toFloat(), h.toFloat())
+
+        matrix.reset()
         matrix.setRectToRect(backgroundRect, viewRect, Matrix.ScaleToFit.CENTER)
 
         // Here we make isViewResized to true, bcz we want to perform operations everytime the size changed
@@ -421,19 +429,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
                 invalidate()
             }
         }
-
-        /**
-         * If, due to any reason, the view size has changed. and therefore,
-         * we have to make sure the dragX and dragY value according to size or ratio.
-         */
-        /*if (isViewResized){
-            if (originalFrameWidth != 0f && originalUserImageWidth != 0f) {
-                dragValueX *= newFrameWidth / originalFrameWidth
-                dragValueY *= newUserImageWidth / originalUserImageWidth
-            }
-            if (dragValueX != 0f || dragValueY != 0f) imageRect.offset(dragValueX, dragValueY)
-            isViewResized = false
-        }*/
 
         if (isConfigurationTrigger) {
             updateMatrix()
@@ -473,6 +468,9 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
         // Restore the canvas to its original state
         canvas.restore()
+
+        // Draw the transparent template image.
+        templateBitmap?.let { canvas.drawBitmap(it, matrix, null) }
     }
 
     override fun onSaveInstanceState(): Parcelable {
@@ -512,21 +510,21 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private fun updateMatrix() {
         Log.d(TAG, "updateMatrix: is called")
         // Assuming you have variables for scale, rotation, and translation
-        val matrix = Matrix()
+        transformationMatrix.reset()
         // Apply scaling
-        if (zoomCenterX != 0f || zoomCenterY != 0f) matrix.postScale(zoomScaleFactor, zoomScaleFactor, zoomCenterX, zoomCenterY)
+        if (zoomCenterX != 0f || zoomCenterY != 0f) transformationMatrix.postScale(zoomScaleFactor, zoomScaleFactor, zoomCenterX, zoomCenterY)
         // Apply rotation
-        if (rotationAngleDelta != 0f && (zoomCenterX != 0f || zoomCenterY != 0f)) matrix.postRotate(rotationAngleDelta, zoomCenterX, zoomCenterY)
-        else if (rotationAngleDelta != 0f) matrix.postRotate(rotationAngleDelta, imageRectFix.width() / 2f, imageRectFix.height() / 2f)
+        if (rotationAngleDelta != 0f && (zoomCenterX != 0f || zoomCenterY != 0f)) transformationMatrix.postRotate(rotationAngleDelta, zoomCenterX, zoomCenterY)
+        else if (rotationAngleDelta != 0f) transformationMatrix.postRotate(rotationAngleDelta, imageRectFix.centerX(), imageRectFix.centerY())
 
         // Apply translation (dragging)
-        if (isDragging) matrix.postTranslate(dragValueX, dragValueY)
+        if (isDragging) transformationMatrix.postTranslate(dragValueX, dragValueY)
 
-        // Set the matrix for your custom view
-        imageMatrix = matrix
-
-        // Trigger a redraw
-        invalidate()
+        if (!transformationMatrix.isIdentity) {
+            // Set the matrix for your custom view
+            imageMatrix = transformationMatrix
+            invalidate()
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -545,48 +543,77 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             }
         }
 
-        // Attach the double tap gesture detector
-        event?.let { doubleTapGestureDetector.onTouchEvent(it) }
+        event?.let { gestureDetector.onTouchEvent(it) }
 
         when (event?.action) {
-            MotionEvent.ACTION_DOWN -> {
-                // Check if the touch event is within the selected image bounds.
-                if (imageRectFix.contains(event.x, event.y)) {
-                    Log.d(TAG, "onTouchEvent: ACTION_DOWN is called")
-                    isDragging = true
-                    lastTouchX = event.x
-                    lastTouchY = event.y
-                }
-            }
-
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                Log.d(TAG, "onTouchEvent: ACTION_UP is called")
                 isDragging = false
                 isRotating = false
                 isZooming = false
-            }
-
-            MotionEvent.ACTION_MOVE -> {
-                if (isDragging && !isZooming) {
-                    Log.d(TAG, "onTouchEvent: ACTION_MOVE is called")
-                    // Calculate the distance moved.
-                    val dx = event.x - lastTouchX
-                    val dy = event.y - lastTouchY
-
-                    dragValueX += dx
-                    dragValueY += dy
-
-                    // Update the last touch position.
-                    lastTouchX = event.x
-                    lastTouchY = event.y
-
-                    // Invalidate the view to trigger a redraw.
-                    updateMatrix()
-                }
             }
         }
         // Consume the event to indicate that it's been handled.
         return true
     }
+
+    private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+        override fun onDown(event: MotionEvent): Boolean {
+            if (imageRectFix.contains(event.x, event.y)) {
+                Log.d(TAG, "gestureDetector: onDown is called")
+                isDragging = true
+                lastTouchX = event.x
+                lastTouchY = event.y
+            }
+            return true
+        }
+
+        override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+            // For example, trigger a quick zoom-in or zoom-out based on the fling velocity
+            if (e2.pointerCount > 1) {
+                if (velocityY > 0) {
+                    // Flinging upwards, zoom out
+                    zoomScaleFactor /= 1.5f
+                } else {
+                    // Flinging downwards, zoom in
+                    zoomScaleFactor *= 1.5f
+                }
+
+                zoomScaleFactor = zoomScaleFactor.coerceIn(minScaleFactor, maxScaleFactor)
+
+                // Invalidate the view to trigger a redraw with the new scale
+                updateMatrix()
+            }
+            return true
+        }
+
+        override fun onDoubleTap(e: MotionEvent): Boolean {
+            Log.d(TAG, "onDoubleTap: gestureDetector is called")
+            if (imageRectFix.contains(e.x, e.y)) resetTransformation()
+            return true
+        }
+
+        override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
+            if (isDragging) {
+                Log.d(TAG, "gestureDetector: onScroll is called")
+
+                // Calculate the distance moved.
+                val dx = e2.x - lastTouchX
+                val dy = e2.y - lastTouchY
+
+                dragValueX += dx
+                dragValueY += dy
+
+                // Update the last touch position.
+                lastTouchX = e2.x
+                lastTouchY = e2.y
+
+                // Invalidate the view to trigger a redraw.
+                updateMatrix()
+            }
+            return true
+        }
+    })
 
     // Initialize a scale gesture detector for pinch-to-zoom
     private val scaleGestureDetector: ScaleGestureDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
@@ -598,43 +625,40 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         }
 
         override fun onScale(detector: ScaleGestureDetector): Boolean {
-            Log.d(TAG, "onScale: cumulativeScaleFactor: $cumulativeScaleFactor")
-            cumulativeScaleFactor *= detector.scaleFactor
-            cumulativeScaleFactor = cumulativeScaleFactor.coerceIn(0.1f, 10f) // Adjust the limits as needed
-            zoomScaleFactor = cumulativeScaleFactor
+            zoomScaleFactor *= detector.scaleFactor
+            zoomScaleFactor = zoomScaleFactor.coerceIn(minScaleFactor, maxScaleFactor) // Adjust the limits as needed
+
             isZooming = true
             updateMatrix()
             return true
         }
     })
 
-    // Initialize a gesture detector for double-tap
-    private val doubleTapGestureDetector: GestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
-        override fun onDoubleTap(e: MotionEvent): Boolean {
-            Log.d(TAG, "onDoubleTap: is called")
-            if (imageRectFix.contains(e.x, e.y)) {
-                dragValueX = 0f
-                dragValueY = 0f
-                zoomScaleFactor = 0f
-                rotationAngleDelta = 0f
-                zoomCenterX = 0f
-                zoomCenterY = 0f
-                cumulativeScaleFactor = 1f
-                imageMatrix.reset()
-                rotationGestureDetector.resetRotation()
-                invalidate()
-            }
-            return true
-        }
-    })
+    private fun resetTransformation() {
+        Log.d(TAG, "resetTransformation: is called")
+        dragValueX = 0f
+        dragValueY = 0f
+        zoomScaleFactor = 0f
+        rotationAngleDelta = 0f
+        zoomCenterX = 0f
+        zoomCenterY = 0f
+        zoomScaleFactor = 1f
+        imageMatrix.reset()
+        rotationGestureDetector.resetRotation()
+        invalidate()
+    }
 
     // Initialize a rotation detector
     private val rotationGestureDetector = RotationGestureDetector(object : RotationGestureDetector.OnRotationGestureListener {
         override fun onRotation(rotationAngle: Float) {
+            Log.d(TAG, "onRotation: is called and rotationAngle: $rotationAngle")
             // Handle the rotation gesture here.
-            rotationAngleDelta = rotationAngle
-            isRotating = true
-            updateMatrix()
+            if (rotationAngle != rotationAngleDelta) {
+                Log.d(TAG, "onRotation: is happened")
+                rotationAngleDelta = rotationAngle
+                isRotating = true
+                updateMatrix()
+            }
         }
     })
 
