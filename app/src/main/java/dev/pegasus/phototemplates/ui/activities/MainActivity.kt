@@ -83,6 +83,8 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
         }
         binding.btnSelectPhoto.setOnClickListener { galleryLauncher.launch(Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)) }
         binding.btnAddSticker.setOnClickListener { showTextBoxDialog("") }
+
+        binding.zoomWithFlingView.setImageBitmap(R.drawable.img_pic)
     }
 
     private fun initRecyclerView() {

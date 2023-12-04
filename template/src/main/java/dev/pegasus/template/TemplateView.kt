@@ -1,5 +1,6 @@
 package dev.pegasus.template
 
+import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
@@ -16,6 +17,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
+import android.view.animation.DecelerateInterpolator
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toRect
@@ -99,6 +101,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var dragValueX = 0f
     private var dragValueY = 0f
     private var isConfigurationTrigger = false
+
+    // Variables for fling animation
+    private var flingAnimatorX: ValueAnimator? = null
+    private var flingAnimatorY: ValueAnimator? = null
 
     /**
      * @property deviceScreenHeight: It saves the device screen height value, and we use it in onMeasure function, for properly locating our custom view
@@ -463,10 +469,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     private fun updateMatrix() {
         Log.d(TAG, "updateMatrix: is called")
-        
+
         tempMatrix.reset()
         // Apply scaling
-        if (zoomCenterX != 0f || zoomCenterY != 0f) tempMatrix.postScale(zoomScaleFactor, zoomScaleFactor, zoomCenterX, zoomCenterY)
+        if (zoomCenterX != 0f || zoomCenterY != 0f) tempMatrix.setScale(zoomScaleFactor, zoomScaleFactor, zoomCenterX, zoomCenterY)
         // Apply rotation
         if (rotationAngleDelta != 0f) tempMatrix.postRotate(rotationAngleDelta, imageRectFix.centerX(), imageRectFix.centerY())
         // Apply translation (dragging)
@@ -481,19 +487,51 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         event?.let {
-            if (it.pointerCount > 1) {
-                if (imageRectFix.contains(event.x, event.y)) {
+            if (imageRectFix.contains(event.x, event.y)) {
+                if (it.pointerCount > 1) {
                     // Handle the two-finger zoom gesture
                     scaleGestureDetector.onTouchEvent(it)
                     // Handle the two-finger rotation gesture
                     rotationGestureDetector.onTouchEvent(it)
                 }
-                return@let
+                else gestureDetector.onTouchEvent(it)
             }
-            else gestureDetector.onTouchEvent(it)
+            // Implement fling using VelocityTracker or simply use MotionEvent history
+            // For simplicity, this example uses MotionEvent history
+            when (it.action) {
+                MotionEvent.ACTION_UP -> {
+                    // Start fling animation when the user releases the touch
+                    startFlingAnimation()
+                }
+            }
         }
+
         // Consume the event to indicate that it's been handled.
         return true
+    }
+
+    private fun startFlingAnimation() {
+        // Fling animation for X-axis
+        flingAnimatorX?.cancel()
+        flingAnimatorX = ValueAnimator.ofFloat(matrixValues[Matrix.MTRANS_X], 0f)
+        flingAnimatorX?.duration = 500
+        flingAnimatorX?.interpolator = DecelerateInterpolator()
+        flingAnimatorX?.addUpdateListener {
+            imageMatrix.postTranslate(it.animatedValue as Float, 0f)
+            invalidate()
+        }
+        flingAnimatorX?.start()
+
+        // Fling animation for Y-axis
+        flingAnimatorY?.cancel()
+        flingAnimatorY = ValueAnimator.ofFloat(matrixValues[Matrix.MTRANS_Y], 0f)
+        flingAnimatorY?.duration = 500
+        flingAnimatorY?.interpolator = DecelerateInterpolator()
+        flingAnimatorY?.addUpdateListener {
+            imageMatrix.postTranslate(0f, it.animatedValue as Float)
+            invalidate()
+        }
+        flingAnimatorY?.start()
     }
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
@@ -505,21 +543,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
                 // Save the ID of the pointer
                 activePointerId = event.getPointerId(0)
-            }
-            return true
-        }
-
-        override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
-            // For example, trigger a quick zoom-in or zoom-out based on the fling velocity
-            if (e2.pointerCount > 1) {
-                if (velocityY > 0) {
-                    // Flinging upwards, zoom out
-                    zoomScaleFactor /= 1.5f
-                } else {
-                    // Flinging downwards, zoom in
-                    zoomScaleFactor *= 1.5f
-                }
-                zoomScaleFactor = zoomScaleFactor.coerceIn(minScaleFactor, maxScaleFactor)
             }
             return true
         }
@@ -557,15 +580,12 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     // Initialize a scale gesture detector for pinch-to-zoom
     private val scaleGestureDetector: ScaleGestureDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
 
-        override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
-            zoomCenterX = detector.focusX
-            zoomCenterY = detector.focusY
-            return true
-        }
-
         override fun onScale(detector: ScaleGestureDetector): Boolean {
             zoomScaleFactor *= detector.scaleFactor
             zoomScaleFactor = zoomScaleFactor.coerceIn(minScaleFactor, maxScaleFactor) // Adjust the limits as needed
+
+            zoomCenterX = detector.focusX
+            zoomCenterY = detector.focusY
 
             updateMatrix()
             return true

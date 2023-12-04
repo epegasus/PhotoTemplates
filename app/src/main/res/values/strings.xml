@@ -9,4 +9,5 @@
     <string name="type_something">Type Something</string>
     <string name="add_sticker">add sticker</string>
     <string name="limit_reached">Character Limit Breached</string>
+    <string name="templates_recyclerview">Templates Recyclerview</string>
 </resources>

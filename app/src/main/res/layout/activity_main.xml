@@ -15,6 +15,16 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <dev.pegasus.template.ZoomWithFlingView
+        android:id="@+id/zoomWithFlingView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/view"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
+
     <dev.pegasus.stickers.StickerView
         android:id="@+id/stickerView"
         android:layout_width="0dp"
@@ -36,7 +46,8 @@
         tools:listitem="@layout/item_templates_row_layout"
         app:layout_constraintBottom_toTopOf="@id/btn_changeBackground"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        android:contentDescription="@string/templates_recyclerview"/>
 
     <View
         android:id="@+id/view"
