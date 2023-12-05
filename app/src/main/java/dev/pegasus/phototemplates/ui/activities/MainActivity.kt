@@ -85,6 +85,7 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
         binding.btnAddSticker.setOnClickListener { showTextBoxDialog("") }
 
         binding.zoomWithFlingView.setImageBitmap(R.drawable.img_pic)
+        binding.zoomWithVelocityTracker.setImageResource(R.drawable.img_pic)
     }
 
     private fun initRecyclerView() {

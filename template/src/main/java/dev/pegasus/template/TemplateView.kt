@@ -16,6 +16,7 @@ import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
+import android.view.VelocityTracker
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import androidx.annotation.DrawableRes
@@ -95,6 +96,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      * @property dragValueY: Save the overall y-axis drag value, so to keep the user image inplace after screen configuration
      * @property isConfigurationTrigger: this value is a flag to indicate that whether configuration happened or not.
      * @property flingAnimator: for smooth pinch to zoom functionality
+     * @property velocityTracker: used in zoom feature
      */
     private var activePointerId = -1
     private var lastTouchX = 0f
@@ -103,6 +105,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var dragValueY = 0f
     private var isConfigurationTrigger = false
     private var flingAnimator: ValueAnimator? = null
+    private val velocityTracker = VelocityTracker.obtain()
 
     /**
      * @property deviceScreenHeight: It saves the device screen height value, and we use it in onMeasure function, for properly locating our custom view
@@ -500,8 +503,11 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             // For simplicity, this example uses MotionEvent history
             when (it.action) {
                 MotionEvent.ACTION_UP -> {
+                    velocityTracker.computeCurrentVelocity(1000)
+                    val velocityX = velocityTracker.xVelocity
+                    val velocityY = velocityTracker.yVelocity
                     // Start fling animation when the user releases the touch
-                    startFlingAnimation()
+                    startFlingAnimation(velocityX, velocityY)
                 }
             }
         }
@@ -510,7 +516,21 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         return true
     }
 
-    private fun startFlingAnimation() {
+    private fun startFlingAnimation(velocityX: Float, velocityY: Float) {
+        flingAnimator?.cancel()
+        flingAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 500
+            interpolator = DecelerateInterpolator()
+            addUpdateListener {
+                val fraction = it.animatedValue as Float
+                imageMatrix.postTranslate(fraction * velocityX / 2, fraction * velocityY / 2)
+                invalidate()
+            }
+            start()
+        }
+    }
+
+    /*private fun startFlingAnimation() {
         // Combine X and Y fling animations into a single animator
         flingAnimator?.cancel()
         flingAnimator = ValueAnimator.ofFloat(0f, 1f)
@@ -524,7 +544,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             invalidate()
         }
         flingAnimator?.start()
-    }
+    }*/
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(event: MotionEvent): Boolean {
@@ -535,6 +555,10 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
                 // Save the ID of the pointer
                 activePointerId = event.getPointerId(0)
+
+                // clear velocityTracker and addMovement everytime the user touch the image
+                velocityTracker.clear()
+                velocityTracker?.addMovement(event)
             }
             return true
         }
@@ -614,6 +638,8 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         coroutineScope.cancel()
+        velocityTracker?.recycle()
+        flingAnimator?.cancel()
     }
 
 }

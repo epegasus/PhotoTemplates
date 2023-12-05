@@ -10,6 +10,7 @@
         android:id="@+id/templateView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/view"
         app:layout_constraintStart_toStartOf="parent"
@@ -17,6 +18,16 @@
 
     <dev.pegasus.template.ZoomWithFlingView
         android:id="@+id/zoomWithFlingView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/view"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
+
+    <dev.pegasus.template.ZoomWithVelocityTrackerView
+        android:id="@+id/zoomWithVelocityTracker"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:visibility="gone"
@@ -57,7 +68,7 @@
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@+id/templateView"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/templateView"
+        app:layout_constraintStart_toEndOf="@+id/templateView"
         app:layout_constraintTop_toTopOf="@+id/templateView" />
 
     <com.google.android.material.button.MaterialButton

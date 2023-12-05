@@ -7,7 +7,6 @@ import dev.pegasus.template.dataClasses.TemplateType
 
 class DpTemplates {
 
-    // 100 templates by designers will be as follow
     val list = listOf(
 
         // Christmas templates
