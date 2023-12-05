@@ -94,6 +94,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      * @property dragValueX: Save the overall x-axis drag value, so to keep the user image in-place after screen configuration
      * @property dragValueY: Save the overall y-axis drag value, so to keep the user image inplace after screen configuration
      * @property isConfigurationTrigger: this value is a flag to indicate that whether configuration happened or not.
+     * @property flingAnimator: for smooth pinch to zoom functionality
      */
     private var activePointerId = -1
     private var lastTouchX = 0f
@@ -101,10 +102,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     private var dragValueX = 0f
     private var dragValueY = 0f
     private var isConfigurationTrigger = false
-
-    // Variables for fling animation
-    private var flingAnimatorX: ValueAnimator? = null
-    private var flingAnimatorY: ValueAnimator? = null
+    private var flingAnimator: ValueAnimator? = null
 
     /**
      * @property deviceScreenHeight: It saves the device screen height value, and we use it in onMeasure function, for properly locating our custom view
@@ -173,6 +171,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         // To again, get the frame coordinates
         imageRect.setEmpty()
         imageRectFix.setEmpty()
+        resetTransformation()
 
         updateBackgroundRect()
 
@@ -222,6 +221,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             imageDrawable = imageUtils.createDrawableFromBitmap(it)
 
             coroutineScope.launch {
+                resetTransformation()
                 updateUserImageRect()
                 dragValueX = 0f
                 dragValueY = 0f
@@ -511,27 +511,19 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     }
 
     private fun startFlingAnimation() {
-        // Fling animation for X-axis
-        flingAnimatorX?.cancel()
-        flingAnimatorX = ValueAnimator.ofFloat(matrixValues[Matrix.MTRANS_X], 0f)
-        flingAnimatorX?.duration = 500
-        flingAnimatorX?.interpolator = DecelerateInterpolator()
-        flingAnimatorX?.addUpdateListener {
-            imageMatrix.postTranslate(it.animatedValue as Float, 0f)
+        // Combine X and Y fling animations into a single animator
+        flingAnimator?.cancel()
+        flingAnimator = ValueAnimator.ofFloat(0f, 1f)
+        flingAnimator?.duration = 500
+        flingAnimator?.interpolator = DecelerateInterpolator()
+        flingAnimator?.addUpdateListener {
+            val fraction = it.animatedValue as Float
+            val deltaX = fraction * matrixValues[Matrix.MTRANS_X]
+            val deltaY = fraction * matrixValues[Matrix.MTRANS_Y]
+            imageMatrix.postTranslate(deltaX, deltaY)
             invalidate()
         }
-        flingAnimatorX?.start()
-
-        // Fling animation for Y-axis
-        flingAnimatorY?.cancel()
-        flingAnimatorY = ValueAnimator.ofFloat(matrixValues[Matrix.MTRANS_Y], 0f)
-        flingAnimatorY?.duration = 500
-        flingAnimatorY?.interpolator = DecelerateInterpolator()
-        flingAnimatorY?.addUpdateListener {
-            imageMatrix.postTranslate(0f, it.animatedValue as Float)
-            invalidate()
-        }
-        flingAnimatorY?.start()
+        flingAnimator?.start()
     }
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
