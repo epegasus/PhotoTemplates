@@ -253,7 +253,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
         // To ensure correct positioning everytime the template changed
         matrix.reset()
-
         matrix.setRectToRect(backgroundRect, viewRect, Matrix.ScaleToFit.CENTER)
     }
 
@@ -323,7 +322,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         }.join()
         Log.d(TAG, "setImageFixRectangle: is finished")
     }
-
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
 
@@ -415,7 +413,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
             // Reset the clipPath before adding a new circle
             clipPath.reset()
-
             clipPath.addCircle(centerX, centerY, radius, Path.Direction.CW)
             canvas.clipPath(clipPath)
         }
@@ -472,7 +469,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     private fun updateMatrix() {
         Log.d(TAG, "updateMatrix: is called")
-
         tempMatrix.reset()
         // Apply scaling
         if (zoomCenterX != 0f || zoomCenterY != 0f) tempMatrix.setScale(zoomScaleFactor, zoomScaleFactor, zoomCenterX, zoomCenterY)
@@ -499,8 +495,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
                 }
                 else gestureDetector.onTouchEvent(it)
             }
-            // Implement fling using VelocityTracker or simply use MotionEvent history
-            // For simplicity, this example uses MotionEvent history
+            // Implement fling using VelocityTracker
             when (it.action) {
                 MotionEvent.ACTION_UP -> {
                     velocityTracker.computeCurrentVelocity(1000)
@@ -529,22 +524,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
             start()
         }
     }
-
-    /*private fun startFlingAnimation() {
-        // Combine X and Y fling animations into a single animator
-        flingAnimator?.cancel()
-        flingAnimator = ValueAnimator.ofFloat(0f, 1f)
-        flingAnimator?.duration = 500
-        flingAnimator?.interpolator = DecelerateInterpolator()
-        flingAnimator?.addUpdateListener {
-            val fraction = it.animatedValue as Float
-            val deltaX = fraction * matrixValues[Matrix.MTRANS_X]
-            val deltaY = fraction * matrixValues[Matrix.MTRANS_Y]
-            imageMatrix.postTranslate(deltaX, deltaY)
-            invalidate()
-        }
-        flingAnimator?.start()
-    }*/
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(event: MotionEvent): Boolean {
