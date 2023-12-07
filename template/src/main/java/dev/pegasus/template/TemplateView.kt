@@ -550,7 +550,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
         override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
             Log.d(TAG, "gestureDetector: onScroll is called")
-
             val pointerIndex = e2.findPointerIndex(activePointerId)
             if (pointerIndex != -1) {
                 // Calculate the distance moved.
@@ -567,7 +566,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
                 // Invalidate the view to trigger a redraw.
                 updateMatrix()
             }
-
             return true
         }
     })

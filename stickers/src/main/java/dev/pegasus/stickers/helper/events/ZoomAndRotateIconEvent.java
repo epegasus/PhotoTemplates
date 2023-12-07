@@ -5,8 +5,7 @@ import android.view.MotionEvent;
 import dev.pegasus.stickers.StickerView;
 import dev.pegasus.stickers.ui.StickerIconEvent;
 
-public class ZoomIconEvent implements StickerIconEvent {
-
+public class ZoomAndRotateIconEvent implements StickerIconEvent {
     @Override
     public void onActionDown(StickerView stickerView, MotionEvent event) {}
 
@@ -16,9 +15,5 @@ public class ZoomIconEvent implements StickerIconEvent {
     }
 
     @Override
-    public void onActionUp(StickerView stickerView, MotionEvent event) {
-        if (stickerView.getOnStickerOperationListener() != null && stickerView.getCurrentSticker() != null) {
-            stickerView.getOnStickerOperationListener().onStickerZoomFinished(stickerView.getCurrentSticker());
-        }
-    }
+    public void onActionUp(StickerView stickerView, MotionEvent event) {}
 }

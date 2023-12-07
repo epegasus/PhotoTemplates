@@ -30,6 +30,8 @@ import dev.pegasus.stickers.StickerView
 import dev.pegasus.stickers.TextSticker
 import dev.pegasus.stickers.helper.Sticker
 import dev.pegasus.stickers.helper.events.DeleteIconEvent
+import dev.pegasus.stickers.helper.events.ZoomAndRotateIconEvent
+import dev.pegasus.stickers.helper.events.ZoomIconEvent
 import dev.pegasus.stickers.ui.BitmapStickerIcon
 import dev.pegasus.template.dataClasses.TemplateModel
 import dev.pegasus.template.dataProviders.DpTemplates
@@ -50,7 +52,6 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
     private val _regretManagerList = ArrayList<RegretManager>()
     private val regretManagerList: List<RegretManager> get() = _regretManagerList
     private var regretPosition = 0
-    //private var isDialogActive = false
 
     // Add this property to satisfy the ViewModelStoreOwner interface
     override val viewModelStore: ViewModelStore
@@ -82,7 +83,7 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
             binding.view.isGone = !binding.view.isGone
         }
         binding.btnSelectPhoto.setOnClickListener { galleryLauncher.launch(Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)) }
-        binding.btnAddSticker.setOnClickListener { showTextBoxDialog("") }
+        binding.btnAddSticker.setOnClickListener { showTextBoxDialog() }
 
         binding.zoomWithFlingView.setImageBitmap(R.drawable.img_pic)
         binding.zoomWithVelocityTracker.setImageResource(R.drawable.img_pic)
@@ -100,26 +101,17 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
     }
 
     private fun initStickerView() {
-        val deleteIcon = BitmapStickerIcon(ContextCompat.getDrawable(this@MainActivity, R.drawable.ic_close), BitmapStickerIcon.LEFT_TOP)
-        deleteIcon.iconEvent = DeleteIconEvent()
-
-        binding.stickerView.icons = arrayListOf(deleteIcon)
-        binding.stickerView.isLocked = false
-        binding.stickerView.isConstrained = true
-
         setStickerViewListener()
     }
 
-    private fun showTextBoxDialog(text: String?) {
+    private fun showTextBoxDialog(text: String? = "") {
         dialogTextBox?.dismiss()
         dialogTextBox = DialogTextBox.newInstance(text)
         dialogTextBox?.let {
             it.setListener(object : OnTextDoneClickListener {
                 override fun onDoneText(text: String, isUpdate: Boolean) {
-                    /*if (isUpdate)
-                        //updateSticker(text)
-                    else*/
-                        addSticker(text)
+                    if (isUpdate) updateSticker(text)
+                    else addSticker(text)
                 }
 
                 override fun onCancelText() {
@@ -132,14 +124,13 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
         }
     }
 
-    /*private fun updateSticker(newText: String) {
+    private fun updateSticker(text: String) {
         binding.stickerView.currentSticker?.let {
-            (it as TextSticker).text = newText
+            (it as TextSticker).text = text
             it.resizeText()
             binding.stickerView.invalidate()
-            applyNewText(newText)
         }
-    }*/
+    }
 
     private fun addSticker(newText: String) {
         val sticker = TextSticker(this@MainActivity)
@@ -190,9 +181,6 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
                             return@let
                         }
                     }
-                    sticker.setTextColor(Color.RED)
-                    binding.stickerView.replace(sticker)
-                    binding.stickerView.invalidate()
                 }
                 Log.d("TAG", "onStickerClicked")
             }
@@ -208,7 +196,11 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
                 Log.d("TAG", "onStickerDragFinished")
             }
 
-            override fun onStickerTouchedDown(sticker: Sticker) {
+            override fun onStickerTouchedDown(sticker: Sticker, isUpdate: Boolean) {
+                if (!isUpdate) return
+                if (sticker is TextSticker){
+                    showTextBoxDialog(sticker.text)
+                }
                 Log.d("TAG", "onStickerTouchedDown")
             }
 

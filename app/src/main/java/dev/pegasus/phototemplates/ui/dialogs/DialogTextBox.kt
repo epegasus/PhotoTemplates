@@ -5,6 +5,8 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
@@ -20,6 +22,7 @@ class DialogTextBox : DialogFragment() {
     private val binding by lazy { DialogTextBoxBinding.inflate(layoutInflater) }
     private var onTextDoneClickListener: OnTextDoneClickListener? = null
     private var text: String? = null
+    private var isUpdate: Boolean = false
 
     companion object {
         fun newInstance(text: String?): DialogTextBox {
@@ -37,10 +40,10 @@ class DialogTextBox : DialogFragment() {
 
     private fun initializations() {
         text = arguments?.getString("text")
+        isUpdate = !text.isNullOrEmpty()
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-
         if (binding.root.parent != null) {
             (binding.root.parent as ViewGroup).removeView(binding.root)
         }
@@ -52,6 +55,11 @@ class DialogTextBox : DialogFragment() {
         binding.etTextTextBox.addTextChangedListener(textWatcher())
         binding.etTextTextBox.setText(text)
         binding.etTextTextBox.requestFocus()
+
+        // 200 milliseconds delay (adjust as needed)
+        Handler(Looper.getMainLooper()).postDelayed({
+            showSoftKeyboard(binding.etTextTextBox)
+        }, 200)
 
         // creating the fullscreen dialog
         val dialog = Dialog(binding.root.context)
@@ -78,7 +86,6 @@ class DialogTextBox : DialogFragment() {
     private fun onDoneClick() {
         if (binding.etTextTextBox.text.toString().isNotEmpty()) {
             hideKeyboard()
-            val isUpdate = text?.let { true } ?: false
             onTextDoneClickListener?.onDoneText(binding.etTextTextBox.text.toString(), isUpdate)
             dismiss()
         }
@@ -89,6 +96,11 @@ class DialogTextBox : DialogFragment() {
         hideKeyboard()
         onTextDoneClickListener?.onCancelText()
         dismiss()
+    }
+
+    private fun showSoftKeyboard(view: View) {
+        val imm: InputMethodManager? = view.context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager?
+        imm?.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
     }
 
     private fun hideKeyboard() {
