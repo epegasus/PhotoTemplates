@@ -208,10 +208,6 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
                 Log.d("TAG", "onStickerZoomFinished")
             }
 
-            override fun onStickerFlipped(sticker: Sticker) {
-                Log.d("TAG", "onStickerFlipped")
-            }
-
             override fun onStickerDoubleTapped(sticker: Sticker) {
                 Log.d("TAG", "onDoubleTapped: double tap will be with two click")
             }
