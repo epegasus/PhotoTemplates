@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:background="@color/black"
+        tools:context=".ui.dialogs.DialogTextBox">
+
+        <androidx.constraintlayout.utils.widget.ImageFilterView
+            android:id="@+id/ifv_close_Text_Box"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="6dp"
+            android:src="@drawable/ic_close"
+            app:round="24dp"
+            app:tint="@color/white" />
+
+        <androidx.constraintlayout.utils.widget.ImageFilterView
+            android:id="@+id/ifv_done_Text_Box"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="6dp"
+            android:layout_gravity="top|end"
+            android:src="@drawable/ic_done"
+            android:visibility="gone"
+            app:round="24dp"
+            app:tint="@color/white"
+            tools:visibility="visible" />
+
+        <EditText
+            android:id="@+id/et_text_Text_Box"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginHorizontal="32dp"
+            android:background="@null"
+            android:gravity="center"
+            android:hint="@string/type_something"
+            android:minLines="6"
+            android:importantForAutofill="no"
+            android:inputType="textCapSentences|textMultiLine"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large"
+            android:textColor="@color/white"
+            android:textColorHint="@color/white"
+            app:layout_constraintHeight_min="48dp"/>
+
+    </FrameLayout>
+
+</layout>

@@ -1,4 +1,4 @@
-package dev.pegasus.phototemplates.customView
+package dev.pegasus.phototemplates.commons.customView
 
 import android.content.Context
 import android.graphics.Bitmap
