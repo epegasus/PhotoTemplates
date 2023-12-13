@@ -10,4 +10,8 @@
     <string name="add_sticker">add sticker</string>
     <string name="limit_reached">Character Limit Breached</string>
     <string name="templates_recyclerview">Templates Recyclerview</string>
+    <string name="draw">Draw</string>
+    <string name="template_view">Template View</string>
+    <string name="draw_view">Draw View</string>
+    <string name="txt_done">done</string>
 </resources>

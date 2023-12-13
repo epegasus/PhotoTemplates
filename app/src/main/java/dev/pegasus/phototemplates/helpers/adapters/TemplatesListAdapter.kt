@@ -1,4 +1,4 @@
-package dev.pegasus.phototemplates.helpers.recyclerViews
+package dev.pegasus.phototemplates.helpers.adapters
 
 import android.view.LayoutInflater
 import android.view.ViewGroup

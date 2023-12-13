@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".ui.activities.ActivityDraw">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/mtb_draw"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_done"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end|center"
+                android:text="@string/txt_done"
+                android:layout_marginEnd="10dp"/>
+
+        </com.google.android.material.appbar.MaterialToolbar>
+
+        <androidx.constraintlayout.utils.widget.ImageFilterView
+            android:id="@+id/backgroundImage"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:fitsSystemWindows="true"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/mtb_draw"
+            app:layout_constraintBottom_toTopOf="@id/slider_Main"
+            app:srcCompat="@drawable/img_dummy"/>
+
+        <com.raed.rasmview.RasmView
+            android:id="@+id/rv_brush_Main"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:fitsSystemWindows="true"
+            app:layout_constraintEnd_toEndOf="@id/backgroundImage"
+            app:layout_constraintStart_toStartOf="@id/backgroundImage"
+            app:layout_constraintTop_toTopOf="@id/backgroundImage"
+            app:layout_constraintBottom_toBottomOf="@id/backgroundImage"/>
+
+        <androidx.constraintlayout.utils.widget.ImageFilterView
+            android:id="@+id/ifv_undo_Main"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginBottom="16dp"
+            android:padding="8dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/ifv_redo_Main"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:roundPercent="50"
+            app:srcCompat="@drawable/ic_undo" />
+
+        <androidx.constraintlayout.utils.widget.ImageFilterView
+            android:id="@+id/ifv_redo_Main"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            app:layout_constraintBottom_toBottomOf="@+id/ifv_undo_Main"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toEndOf="@+id/ifv_undo_Main"
+            app:layout_constraintTop_toTopOf="@+id/ifv_undo_Main"
+            app:roundPercent="50"
+            app:srcCompat="@drawable/ic_redo" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/slider_Main"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="8dp"
+            android:value="35"
+            android:valueFrom="0"
+            android:valueTo="100"
+            app:layout_constraintBottom_toTopOf="@+id/ifv_undo_Main"
+            app:layout_constraintEnd_toStartOf="@+id/tv_value_Main"
+            app:layout_constraintStart_toStartOf="parent"
+            app:thumbRadius="7dp" />
+
+        <TextView
+            android:id="@+id/tv_value_Main"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:textColor="?attr/colorOnSurface"
+            app:layout_constraintBottom_toBottomOf="@+id/slider_Main"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/slider_Main"
+            tools:text="0" />
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</layout>

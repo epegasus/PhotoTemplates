@@ -1,4 +1,4 @@
-package dev.pegasus.phototemplates.helpers.adapters
+package dev.pegasus.phototemplates.helpers.binding_adapters
 
 import android.view.View
 import androidx.constraintlayout.utils.widget.ImageFilterView

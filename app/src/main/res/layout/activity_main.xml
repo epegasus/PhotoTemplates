@@ -1,101 +1,194 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".ui.activities.MainActivity">
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <dev.pegasus.template.TemplateView
-        android:id="@+id/templateView"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/view"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/main"
+        tools:context=".ui.activities.MainActivity">
 
-    <dev.pegasus.template.ZoomWithFlingView
-        android:id="@+id/zoomWithFlingView"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/view"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/mtb_main"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
-    <dev.pegasus.template.ZoomWithVelocityTrackerView
-        android:id="@+id/zoomWithVelocityTracker"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/view"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_done"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end|center"
+                android:visibility="invisible"
+                android:text="@string/txt_done"
+                android:layout_marginEnd="10dp"/>
 
-    <dev.pegasus.stickers.StickerView
-        android:id="@+id/stickerView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:padding="8dp"
-        app:layout_constraintBottom_toBottomOf="@id/templateView"
-        app:layout_constraintEnd_toEndOf="@id/templateView"
-        app:layout_constraintStart_toStartOf="@id/templateView"
-        app:layout_constraintTop_toTopOf="@id/templateView"
-        app:showBorder="true"
-        app:showIcons="true" />
+        </com.google.android.material.appbar.MaterialToolbar>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/templatesRecyclerView"
-        android:layout_width="0dp"
-        android:layout_height="?actionBarSize"
-        android:orientation="horizontal"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        tools:listitem="@layout/item_templates_row_layout"
-        app:layout_constraintBottom_toTopOf="@id/btn_changeBackground"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        android:contentDescription="@string/templates_recyclerview"/>
+        <dev.pegasus.template.TemplateView
+            android:id="@+id/templateView"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:visibility="visible"
+            app:layout_constraintBottom_toTopOf="@id/templatesRecyclerView"
+            app:layout_constraintEnd_toStartOf="@+id/view"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/mtb_main" />
 
-    <View
-        android:id="@+id/view"
-        android:layout_width="100dp"
-        android:layout_height="0dp"
-        android:background="@color/black"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@+id/templateView"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/templateView"
-        app:layout_constraintTop_toTopOf="@+id/templateView" />
+        <!--<dev.pegasus.template.ZoomWithFlingView
+            android:id="@+id/zoomWithFlingView"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/view"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_changeBackground"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/change_background"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/btn_selectPhoto" />
+        <dev.pegasus.template.ZoomWithVelocityTrackerView
+            android:id="@+id/zoomWithVelocityTracker"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/view"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />-->
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_selectPhoto"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/select_photo"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/btn_changeBackground"
-        app:layout_constraintStart_toEndOf="@id/btn_addSticker" />
+        <dev.pegasus.stickers.StickerView
+            android:id="@+id/stickerView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:padding="8dp"
+            app:layout_constraintBottom_toBottomOf="@id/templateView"
+            app:layout_constraintEnd_toEndOf="@id/templateView"
+            app:layout_constraintStart_toStartOf="@id/templateView"
+            app:layout_constraintTop_toTopOf="@id/templateView"
+            app:showBorder="true"
+            app:showIcons="true" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_addSticker"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/add_sticker"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/btn_selectPhoto"
-        app:layout_constraintStart_toStartOf="parent" />
+        <com.raed.rasmview.RasmView
+            android:id="@+id/rv_brush_Main"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:fitsSystemWindows="true"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="@id/stickerView"
+            app:layout_constraintStart_toStartOf="@id/stickerView"
+            app:layout_constraintTop_toTopOf="@id/stickerView"
+            app:layout_constraintBottom_toBottomOf="@id/stickerView"/>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <com.google.android.material.slider.Slider
+            android:id="@+id/slider_Main"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="8dp"
+            android:value="35"
+            android:valueFrom="0"
+            android:valueTo="100"
+            app:thumbRadius="7dp"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/tv_value_Main"
+            app:layout_constraintTop_toBottomOf="@id/rv_brush_Main"/>
+
+        <TextView
+            android:id="@+id/tv_value_Main"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:textColor="?attr/colorOnSurface"
+            app:layout_constraintBottom_toBottomOf="@+id/slider_Main"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/slider_Main"
+            app:layout_constraintStart_toEndOf="@id/slider_Main"
+            android:visibility="gone"
+            tools:text="0" />
+
+        <androidx.constraintlayout.utils.widget.ImageFilterView
+            android:id="@+id/ifv_undo_Main"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginBottom="16dp"
+            android:padding="8dp"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/slider_Main"
+            app:layout_constraintEnd_toStartOf="@id/ifv_redo_Main"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:roundPercent="50"
+            app:srcCompat="@drawable/ic_undo" />
+
+        <androidx.constraintlayout.utils.widget.ImageFilterView
+            android:id="@+id/ifv_redo_Main"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/slider_Main"
+            app:layout_constraintStart_toEndOf="@id/ifv_undo_Main"
+            app:roundPercent="50"
+            android:visibility="gone"
+            app:srcCompat="@drawable/ic_redo" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/templatesRecyclerView"
+            android:layout_width="0dp"
+            android:layout_height="?actionBarSize"
+            android:orientation="horizontal"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/item_templates_row_layout"
+            app:layout_constraintBottom_toTopOf="@id/btn_changeBackground"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:contentDescription="@string/templates_recyclerview" />
+
+        <View
+            android:id="@+id/view"
+            android:layout_width="100dp"
+            android:layout_height="0dp"
+            android:background="@color/black"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@+id/templateView"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/templateView"
+            app:layout_constraintTop_toTopOf="@+id/templateView" />
+
+        <!-- Just to practice drawing on the image we change the text and
+        functionality of the image -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_changeBackground"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/draw"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/btn_selectPhoto" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_selectPhoto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/select_photo"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btn_changeBackground"
+            app:layout_constraintStart_toEndOf="@id/btn_addSticker" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_addSticker"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/add_sticker"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btn_selectPhoto"
+            app:layout_constraintStart_toStartOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

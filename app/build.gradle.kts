@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.libs
+
 @Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed
 plugins {
     alias(libs.plugins.androidApplication)
@@ -31,8 +33,9 @@ android {
         jvmTarget = "17"
     }
     buildFeatures {
-        viewBinding = true
         dataBinding = true
+        // To get the buildConfig object of our main application mostly used in App level class
+        buildConfig = true
     }
 }
 
@@ -46,4 +49,11 @@ dependencies {
     implementation(libs.material)
     implementation(libs.constraintlayout)
     implementation(libs.glide)
+
+    // For Drawing on the bitmap
+    implementation (libs.rasmview)
+    // For EdgeToEdge feature
+    implementation (libs.activity.ktx)
+    // Koin for dependency injection
+    implementation(libs.koin.android)
 }
