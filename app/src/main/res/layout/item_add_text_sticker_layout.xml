@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:layout_marginHorizontal="10dp">
+
+        <View
+            android:id="@+id/containerViewAdd"
+            android:layout_width="50dp"
+            android:layout_height="80dp"
+            android:background="@android:color/holo_blue_bright"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <androidx.constraintlayout.utils.widget.ImageFilterView
+            android:id="@+id/ifv_add"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:srcCompat="@drawable/ic_add"
+            app:layout_constraintStart_toStartOf="@id/containerViewAdd"
+            app:layout_constraintEnd_toEndOf="@id/containerViewAdd"
+            app:layout_constraintTop_toTopOf="@id/containerViewAdd"
+            app:layout_constraintBottom_toBottomOf="@id/containerViewAdd" />
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

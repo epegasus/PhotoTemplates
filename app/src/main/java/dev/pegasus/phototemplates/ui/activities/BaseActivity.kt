@@ -14,7 +14,7 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 
 abstract class BaseActivity<T: ViewDataBinding>(@LayoutRes layoutId: Int): AppCompatActivity() {
 
-    protected val binding: T? by lazy {
+    protected val mBinding: T? by lazy {
         DataBindingUtil.inflate<T>(layoutInflater, layoutId, null, false)
     }
 
@@ -29,7 +29,7 @@ abstract class BaseActivity<T: ViewDataBinding>(@LayoutRes layoutId: Int): AppCo
         // To get the status bar padding, we have
         // Also note that by using the below code,
         // our system bar or status bar will now have the same color is our main activity has
-        binding?.root?.let {
+        mBinding?.root?.let {
             ViewCompat.setOnApplyWindowInsetsListener(it){ view, insets ->
                 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
                 view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)

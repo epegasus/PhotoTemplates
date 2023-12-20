@@ -33,7 +33,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:visibility="visible"
-            app:layout_constraintBottom_toTopOf="@id/templatesRecyclerView"
+            app:layout_constraintBottom_toTopOf="@id/fl_container"
             app:layout_constraintEnd_toStartOf="@+id/view"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/mtb_main" />
@@ -138,18 +138,6 @@
             android:visibility="gone"
             app:srcCompat="@drawable/ic_redo" />
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/templatesRecyclerView"
-            android:layout_width="0dp"
-            android:layout_height="?actionBarSize"
-            android:orientation="horizontal"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            tools:listitem="@layout/item_templates_row_layout"
-            app:layout_constraintBottom_toTopOf="@id/btn_changeBackground"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            android:contentDescription="@string/templates_recyclerview" />
-
         <View
             android:id="@+id/view"
             android:layout_width="100dp"
@@ -161,34 +149,15 @@
             app:layout_constraintStart_toEndOf="@+id/templateView"
             app:layout_constraintTop_toTopOf="@+id/templateView" />
 
-        <!-- Just to practice drawing on the image we change the text and
-        functionality of the image -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_changeBackground"
-            android:layout_width="wrap_content"
+        <FrameLayout
+            android:id="@+id/fl_container"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="@string/draw"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/btn_selectPhoto" />
+            app:layout_constraintBottom_toBottomOf="parent"/>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_selectPhoto"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/select_photo"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/btn_changeBackground"
-            app:layout_constraintStart_toEndOf="@id/btn_addSticker" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_addSticker"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/add_sticker"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/btn_selectPhoto"
-            app:layout_constraintStart_toStartOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
