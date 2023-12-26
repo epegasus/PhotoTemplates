@@ -39,8 +39,6 @@ import java.lang.Float.min
 
 class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : View(context, attrs, defStyleAttr) {
 
-    private var paintBitmap: Bitmap? = null
-
     private val imageUtils by lazy { ImageUtils(context) }
 
     /**
@@ -210,6 +208,9 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      */
     fun setImageResource(@DrawableRes imageId: Int) {
         imageDrawable = ContextCompat.getDrawable(context, imageId)
+        imageDrawable?.let {
+            imageAspectRatio = it.intrinsicWidth.toFloat() / it.intrinsicHeight.toFloat()
+        }
 
         coroutineScope.launch {
             updateUserImageRect()
@@ -236,17 +237,16 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     }
 
     fun setImageDrawable(drawable: Drawable?) {
-        if (drawable == null) {
-            Log.e(TAG, "TemplateView: setImageDrawable: ", NullPointerException("Drawable is Null"))
-            return
-        }
-        imageDrawable = drawable
+        drawable?.let {
+            imageDrawable = it
+            imageAspectRatio = it.intrinsicWidth.toFloat() / it.intrinsicHeight.toFloat()
 
-        coroutineScope.launch {
-            updateUserImageRect()
-            dragValueX = 0f
-            dragValueY = 0f
-            invalidate()
+            coroutineScope.launch {
+                updateUserImageRect()
+                dragValueX = 0f
+                dragValueY = 0f
+                invalidate()
+            }
         }
     }
 
@@ -434,9 +434,6 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
         // Draw the transparent template image.
         templateBitmap?.let { canvas.drawBitmap(it, matrix, null) }
-
-        // Draw the drawing image
-        paintBitmap?.let { canvas.drawBitmap(it, 0f, 0f, null) }
     }
 
     override fun onSaveInstanceState(): Parcelable {
@@ -617,19 +614,18 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         }
     })
 
-    fun savePaintBitmap(bitmap: Bitmap) {
-        paintBitmap = bitmap
-        invalidate()
-        /*val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    fun getViewAsBitmap(): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         draw(canvas)
-        return bitmap*/
+        return bitmap
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         coroutineScope.cancel()
-        velocityTracker?.recycle()
+        // To release any resources taken from the velocity-tracker
+        velocityTracker?.clear()
         flingAnimator?.cancel()
     }
 

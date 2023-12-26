@@ -15,7 +15,8 @@ import java.lang.IllegalArgumentException
 
 class TextStickerListAdapter (
     private val itemClick: ( model :TextStickerModel, position: Int) -> Unit,
-    private val addTextStickerButtonClick: (position: Int) -> Unit
+    private val addTextStickerButtonClick: (position: Int) -> Unit,
+    private val handleStickerClick: (position: Int) -> Unit
 ) : ListAdapter<TextStickerModel, RecyclerView.ViewHolder>(diffUtil) {
 
     override fun getItemViewType(position: Int): Int {
@@ -49,9 +50,15 @@ class TextStickerListAdapter (
                 holder.binding.ifvEdit.visibility = if (currentItem.isSelected) View.VISIBLE else View.GONE
                 holder.binding.containerViewText.isSelected = currentItem.isSelected
 
-                holder.binding.containerViewText.setOnClickListener { itemClick.invoke(currentItem, position) }
+                holder.binding.containerViewText.setOnClickListener {
+                    handleStickerClick.invoke(position)
+                    itemClick.invoke(currentItem, position)
+                }
             }
-            is AddTextStickerViewHolder -> { holder.binding.containerViewAdd.setOnClickListener { addTextStickerButtonClick.invoke(position) } }
+            is AddTextStickerViewHolder -> { holder.binding.containerViewAdd.setOnClickListener {
+                handleStickerClick.invoke(position)
+                addTextStickerButtonClick.invoke(position) }
+            }
         }
     }
 

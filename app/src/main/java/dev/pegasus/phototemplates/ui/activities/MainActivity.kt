@@ -18,6 +18,7 @@ import androidx.core.view.isVisible
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.raed.rasmview.RasmContext
 import com.raed.rasmview.brushtool.data.Brush
@@ -45,6 +46,7 @@ import dev.pegasus.template.dataProviders.DpTemplates
 import dev.pegasus.template.utils.HelperUtils.TAG
 import dev.pegasus.template.utils.HelperUtils.isValidPosition
 import dev.pegasus.template.viewModels.TemplateViewModel
+import kotlinx.coroutines.launch
 
 class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main), ViewModelStoreOwner, OnTemplateItemClickListener {
 
@@ -105,7 +107,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main), 
                 val bitmap = rasmContext?.exportRasm()
                 bitmap?.let {
                     Log.d(TAG, "onCreate: received bitmap width: ${it.width} and height: ${it.height}")
-                    templateView.savePaintBitmap(it)
+                    //templateView.getViewAsBitmap()
                 }
 
                 btnDone.visibility = View.GONE
@@ -181,28 +183,30 @@ class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main), 
 
         textStickerAdapter = TextStickerListAdapter(
             itemClick = { model: TextStickerModel, position: Int ->
-
-                Log.d(TAG, "initTextStickerControlsView: position -> $position")
-
-                if (position != SELECTED_STICKER_POSITION){
-                    textStickerList.list[SELECTED_STICKER_POSITION].isSelected = false
-                    SELECTED_STICKER_POSITION = position
-                    textStickerList.list[SELECTED_STICKER_POSITION].isSelected = true
-                    // Only submitting the list to adapter is not working properly,
-                    // you have to reassign the adapter to recyclerview too
-                    binding?.fontsRecyclerView?.adapter = textStickerAdapter
-                    textStickerAdapter?.submitList(textStickerList.list)
+                regretManagerList.forEachIndexed let@{ index, regretManager ->
+                    if (regretManager.getView()?.text == model.text) {
+                        Log.d(TAG, "initTextStickerControlsView: text matched")
+                        regretPosition = index
+                        return@let
+                    }
                 }
-
+                addSticker(model.text)
             },
             addTextStickerButtonClick = { position ->
-                Log.d(TAG, "initTextStickerControlsView: position -> $position")
-                textStickerList.list[SELECTED_STICKER_POSITION].isSelected = false
-                SELECTED_STICKER_POSITION = position
-                binding?.fontsRecyclerView?.adapter = textStickerAdapter
-                textStickerAdapter?.submitList(textStickerList.list)
-
                 showTextBoxDialog()
+            },
+            handleStickerClick = { position ->
+                lifecycleScope.launch {
+                    if (position != SELECTED_STICKER_POSITION){
+                        textStickerList.list[SELECTED_STICKER_POSITION].isSelected = false
+                        SELECTED_STICKER_POSITION = position
+                        textStickerList.list[SELECTED_STICKER_POSITION].isSelected = true
+                        // Only submitting the list to adapter is not working properly,
+                        // you have to reassign the adapter to recyclerview too
+                        binding?.fontsRecyclerView?.adapter = textStickerAdapter
+                        textStickerAdapter?.submitList(textStickerList.list)
+                    }
+                }
             })
         binding?.fontsRecyclerView?.adapter = textStickerAdapter
         textStickerAdapter?.submitList(textStickerList.list)
