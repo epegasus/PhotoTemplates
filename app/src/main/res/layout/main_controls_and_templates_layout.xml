@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/templatesRecyclerView"
+            android:layout_width="0dp"
+            android:layout_height="?actionBarSize"
+            android:orientation="horizontal"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/item_templates_row_layout"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:contentDescription="@string/templates_recyclerview" />
+
+        <!-- Scroll View for the main actions -->
+        <HorizontalScrollView
+            android:id="@+id/horizontalScrollView"
+            android:layout_width="0dp"
+            android:layout_height="?actionBarSize"
+            android:scrollbars="none"
+            android:layout_marginTop="10dp"
+            android:background="@android:color/black"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/templatesRecyclerView"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_addTextSticker"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="10dp"
+                    app:icon="@drawable/ic_text"
+                    app:iconGravity="top"
+                    android:backgroundTint="@android:color/black"
+                    android:text="@string/sticker" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_addEmojiSticker"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@android:color/black"
+                    android:layout_marginEnd="10dp"
+                    app:icon="@drawable/ic_emoji"
+                    app:iconGravity="top"
+                    android:text="@string/emoji" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_draw"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@android:color/black"
+                    android:layout_marginEnd="10dp"
+                    app:icon="@drawable/ic_draw"
+                    app:iconGravity="top"
+                    android:text="@string/draw" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_changeBackground"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/change_background"
+                    android:backgroundTint="@android:color/black"
+                    android:layout_marginEnd="10dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_selectPhoto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@android:color/black"
+                    android:layout_marginEnd="10dp"
+                    android:text="@string/select_photo" />
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+        </HorizontalScrollView>
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

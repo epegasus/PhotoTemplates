@@ -20,4 +20,17 @@ class ImageUtils(private val context: Context) {
         drawable.draw(canvas)
         return bitmap
     }
+
+    fun createTransparentBitmap(width: Int, height: Int): Bitmap {
+        // Create a transparent bitmap with the specified width and height
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+
+        // Create a Canvas to draw on the bitmap
+        val canvas = Canvas(bitmap)
+
+        // Draw a transparent color on the entire bitmap
+        canvas.drawARGB(0, 0, 0, 0)
+
+        return bitmap
+    }
 }

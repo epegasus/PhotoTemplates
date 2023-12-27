@@ -8,20 +8,31 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.text.Layout
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewTreeObserver
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isGone
-import androidx.lifecycle.ViewModelProvider
+import androidx.core.view.isVisible
+import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
+import com.raed.rasmview.RasmContext
+import com.raed.rasmview.brushtool.data.Brush
+import com.raed.rasmview.brushtool.data.BrushesRepository
 import dev.pegasus.phototemplates.R
+import dev.pegasus.phototemplates.commons.dataProvider.TextStickerDataProvider
 import dev.pegasus.phototemplates.commons.listeners.OnTemplateItemClickListener
 import dev.pegasus.phototemplates.commons.listeners.OnTextDoneClickListener
 import dev.pegasus.phototemplates.databinding.ActivityMainBinding
-import dev.pegasus.phototemplates.helpers.recyclerViews.TemplatesListAdapter
+import dev.pegasus.phototemplates.databinding.MainControlsAndTemplatesLayoutBinding
+import dev.pegasus.phototemplates.databinding.TextStickerControlsLayoutBinding
+import dev.pegasus.phototemplates.helpers.adapters.TemplatesListAdapter
+import dev.pegasus.phototemplates.helpers.adapters.TextStickerListAdapter
+import dev.pegasus.phototemplates.helpers.model.TextStickerModel
 import dev.pegasus.phototemplates.ui.dialogs.DialogTextBox
 import dev.pegasus.regret.RegretManager
 import dev.pegasus.regret.enums.CaseType
@@ -29,24 +40,30 @@ import dev.pegasus.regret.interfaces.RegretListener
 import dev.pegasus.stickers.StickerView
 import dev.pegasus.stickers.TextSticker
 import dev.pegasus.stickers.helper.Sticker
-import dev.pegasus.stickers.helper.events.DeleteIconEvent
-import dev.pegasus.stickers.helper.events.ZoomAndRotateIconEvent
-import dev.pegasus.stickers.helper.events.ZoomIconEvent
-import dev.pegasus.stickers.ui.BitmapStickerIcon
+import dev.pegasus.stickers.ui.DrawableSticker
 import dev.pegasus.template.dataClasses.TemplateModel
 import dev.pegasus.template.dataProviders.DpTemplates
 import dev.pegasus.template.utils.HelperUtils.TAG
 import dev.pegasus.template.utils.HelperUtils.isValidPosition
 import dev.pegasus.template.viewModels.TemplateViewModel
+import kotlinx.coroutines.launch
 
-class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemClickListener {
+class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main), ViewModelStoreOwner, OnTemplateItemClickListener {
 
-    private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     private val dpTemplates by lazy { DpTemplates() }
-    private lateinit var viewModel: TemplateViewModel
+    private var viewModel: TemplateViewModel? = null
     private var mBitmap: Bitmap? = null
     private var dialogTextBox: DialogTextBox? = null
     private var templateAdapter: TemplatesListAdapter? = null
+
+    private val inflater by lazy { LayoutInflater.from(this) }
+    private var layoutToAdd: View? = null
+
+    // for the text sticker controls
+    private var textStickerAdapter: TextStickerListAdapter? = null
+    private val textStickerList by lazy { TextStickerDataProvider() }
+
+    private var rasmContext: RasmContext? = null
 
     // Regret Manager
     private val _regretManagerList = ArrayList<RegretManager>()
@@ -63,41 +80,146 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
             result.data?.data?.let {
                 this@MainActivity.contentResolver.openInputStream(it)?.use { inputStream ->
                     mBitmap = BitmapFactory.decodeStream(inputStream)
-                    binding.templateView.setImageBitmap(mBitmap)
+                    mBinding?.templateView?.setImageBitmap(mBitmap)
                 }
             }
         }
     }
 
+    companion object {
+        private var SELECTED_STICKER_POSITION = 0
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(binding.root)
+        setContentView(mBinding?.root)
 
-        viewModel = ViewModelProvider(this)[TemplateViewModel::class.java]
+        viewModel = mViewModel
 
-        initView()
+        Log.d(TAG, "onCreate: main activity viewModel instance ${viewModel.hashCode()}")
+
+        initMainControlsView()
         initStickerView()
-        initRecyclerView()
 
-        binding.btnChangeBackground.setOnClickListener {
-            binding.view.isGone = !binding.view.isGone
+        mBinding?.btnDone?.setOnClickListener {
+            mBinding?.apply {
+
+                val bitmap = rasmContext?.exportRasm()
+                bitmap?.let {
+                    Log.d(TAG, "onCreate: received bitmap width: ${it.width} and height: ${it.height}")
+                    //templateView.getViewAsBitmap()
+                }
+
+                btnDone.visibility = View.GONE
+                rvBrushMain.visibility = View.GONE
+                sliderMain.visibility = View.GONE
+                ifvUndoMain.visibility = View.GONE
+                ifvRedoMain.visibility = View.GONE
+            }
         }
-        binding.btnSelectPhoto.setOnClickListener { galleryLauncher.launch(Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)) }
-        binding.btnAddSticker.setOnClickListener { showTextBoxDialog() }
 
-        binding.zoomWithFlingView.setImageBitmap(R.drawable.img_pic)
-        binding.zoomWithVelocityTracker.setImageResource(R.drawable.img_pic)
+        mBinding?.sliderMain?.addOnChangeListener { _, value, _ ->
+            mBinding?.tvValueMain?.text = value.toInt().toString()
+            rasmContext?.brushConfig?.size = value / 100
+        }
+
+        mBinding?.ifvUndoMain?.setOnClickListener {
+            with(rasmContext?.state) {
+                if (this?.canCallUndo() == true) undo()
+            }
+        }
+
+        mBinding?.ifvRedoMain?.setOnClickListener {
+            with(rasmContext?.state) {
+                if (this?.canCallRedo() == true) redo()
+            }
+        }
+
+        mBinding?.mtbMain?.title = resources.getString(R.string.template_view)
     }
 
-    private fun initRecyclerView() {
+    private fun initMainControlsView() {
+        mBinding?.templateView?.setBackgroundFromModel(dpTemplates.list[0])
+        mBinding?.templateView?.setImageResource(R.drawable.img_pic)
+
+        // Inflate the main control layout
+        val binding: MainControlsAndTemplatesLayoutBinding? = DataBindingUtil.inflate(
+            inflater,
+            R.layout.main_controls_and_templates_layout,
+            mBinding?.flContainer,
+            false
+        )
+        layoutToAdd = binding?.root
+
+        // Add the layout to the FrameLayout
+        mBinding?.flContainer?.addView(layoutToAdd)
+
+        val recyclerView = binding?.templatesRecyclerView
         templateAdapter = TemplatesListAdapter(this)
-        binding.templatesRecyclerView.adapter = templateAdapter
+        recyclerView?.adapter = templateAdapter
         templateAdapter?.submitList(dpTemplates.list)
+
+        binding?.btnAddTextSticker?.setOnClickListener { initTextStickerControlsView() }
+        binding?.btnAddEmojiSticker?.setOnClickListener {
+            val drawableSticker = ContextCompat.getDrawable(this@MainActivity, dev.pegasus.stickers.R.drawable.ic_haha_emoji)
+            drawableSticker?.let {
+                if (it.intrinsicWidth > 0 && it.intrinsicHeight > 0) {
+                    val emojiSticker = DrawableSticker(it)
+                    mBinding?.stickerView?.addSticker(emojiSticker)
+                }
+            }
+        }
+        binding?.btnDraw?.setOnClickListener {  }
+        binding?.btnChangeBackground?.setOnClickListener { mBinding?.view?.isGone = !mBinding?.view?.isGone!! }
+        binding?.btnSelectPhoto?.setOnClickListener { galleryLauncher.launch(Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)) }
     }
 
-    private fun initView() {
-        binding.templateView.setBackgroundFromModel(dpTemplates.list[0])
-        binding.templateView.setImageResource(R.drawable.img_pic)
+    private fun initTextStickerControlsView() {
+        val binding: TextStickerControlsLayoutBinding? = DataBindingUtil.inflate(inflater, R.layout.text_sticker_controls_layout, mBinding?.flContainer, false)
+        layoutToAdd = binding?.root
+        // First, let's remove all child views
+        mBinding?.flContainer?.removeAllViews()
+        mBinding?.flContainer?.addView(layoutToAdd)
+
+        textStickerAdapter = TextStickerListAdapter(
+            itemClick = { model: TextStickerModel, position: Int ->
+                regretManagerList.forEachIndexed let@{ index, regretManager ->
+                    if (regretManager.getView()?.text == model.text) {
+                        Log.d(TAG, "initTextStickerControlsView: text matched")
+                        regretPosition = index
+                        return@let
+                    }
+                }
+                addSticker(model.text)
+            },
+            addTextStickerButtonClick = { position ->
+                showTextBoxDialog()
+            },
+            handleStickerClick = { position ->
+                lifecycleScope.launch {
+                    if (position != SELECTED_STICKER_POSITION){
+                        textStickerList.list[SELECTED_STICKER_POSITION].isSelected = false
+                        SELECTED_STICKER_POSITION = position
+                        textStickerList.list[SELECTED_STICKER_POSITION].isSelected = true
+                        // Only submitting the list to adapter is not working properly,
+                        // you have to reassign the adapter to recyclerview too
+                        binding?.fontsRecyclerView?.adapter = textStickerAdapter
+                        textStickerAdapter?.submitList(textStickerList.list)
+                    }
+                }
+            })
+        binding?.fontsRecyclerView?.adapter = textStickerAdapter
+        textStickerAdapter?.submitList(textStickerList.list)
+
+        binding?.btnCross?.setOnClickListener {
+            mBinding?.flContainer?.removeAllViews()
+            initMainControlsView()
+        }
+        binding?.btnDone?.setOnClickListener {
+            mBinding?.flContainer?.removeAllViews()
+            initMainControlsView()
+        }
+
     }
 
     private fun initStickerView() {
@@ -115,8 +237,6 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
                 }
 
                 override fun onCancelText() {
-//                    if (regretManagerList.isEmpty())
-//                        onBackPress()
                     dialogTextBox?.dismiss()
                 }
             })
@@ -125,10 +245,10 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
     }
 
     private fun updateSticker(text: String) {
-        binding.stickerView.currentSticker?.let {
+        mBinding?.stickerView?.currentSticker?.let {
             (it as TextSticker).text = text
             it.resizeText()
-            binding.stickerView.invalidate()
+            mBinding?.stickerView?.invalidate()
         }
     }
 
@@ -138,12 +258,12 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
         sticker.setTextColor(ContextCompat.getColor(this@MainActivity, dev.pegasus.stickers.R.color.purple_200))
         sticker.setTextAlign(Layout.Alignment.ALIGN_CENTER)
         sticker.resizeText()
-        binding.stickerView.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+        mBinding?.stickerView?.viewTreeObserver?.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
-                binding.stickerView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                if (binding.stickerView.stickerCount < 20) {
-                    binding.stickerView.addSticker(sticker)
-                } else Snackbar.make(binding.root, resources.getString(R.string.limit_reached), Snackbar.LENGTH_LONG).show()
+                mBinding?.stickerView?.viewTreeObserver!!.removeOnGlobalLayoutListener(this)
+                if (mBinding?.stickerView?.stickerCount!! < 20) {
+                    mBinding?.stickerView?.addSticker(sticker)
+                } else mBinding?.root?.let { Snackbar.make(it, resources.getString(R.string.limit_reached), Snackbar.LENGTH_LONG).show() }
             }
         })
     }
@@ -162,21 +282,21 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
         }
         regretPosition = regretManagerList.size - 1
         if (regretPosition.isValidPosition(regretManagerList)) {
-             regretManagerList[regretPosition].setView(sticker)
+            regretManagerList[regretPosition].setView(sticker)
         }
     }
 
     private fun setStickerViewListener() {
-        binding.stickerView.onStickerOperationListener = object : StickerView.OnStickerOperationListener {
+        mBinding?.stickerView?.onStickerOperationListener = object : StickerView.OnStickerOperationListener {
             override fun onStickerAdded(sticker: Sticker) {
                 Log.d("TAG", "onStickerAdded")
-                addItemRegretManager(sticker as TextSticker)
+                if (sticker is TextSticker) addItemRegretManager(sticker)
             }
 
             override fun onStickerClicked(sticker: Sticker) {
                 if (sticker is TextSticker) {
-                    regretManagerList.forEachIndexed let@ { index, regretManager ->
-                        if (regretManager.getView() == sticker){
+                    regretManagerList.forEachIndexed let@{ index, regretManager ->
+                        if (regretManager.getView() == sticker) {
                             regretPosition = index
                             return@let
                         }
@@ -187,7 +307,7 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
 
             override fun onStickerDeleted(sticker: Sticker) {
                 Log.d("TAG", "onStickerDeleted")
-                if (regretManagerList.isNotEmpty() && regretManagerList.size > regretPosition){
+                if (regretManagerList.isNotEmpty() && regretManagerList.size > regretPosition) {
                     _regretManagerList.removeAt(regretPosition)
                 }
             }
@@ -198,7 +318,7 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
 
             override fun onStickerTouchedDown(sticker: Sticker, isUpdate: Boolean) {
                 if (!isUpdate) return
-                if (sticker is TextSticker){
+                if (sticker is TextSticker) {
                     showTextBoxDialog(sticker.text)
                 }
                 Log.d("TAG", "onStickerTouchedDown")
@@ -216,7 +336,27 @@ class MainActivity : AppCompatActivity(), ViewModelStoreOwner, OnTemplateItemCli
 
     override fun onItemClick(model: TemplateModel) {
         Log.d(TAG, "onItemClick: model: $model")
-        binding.templateView.setBackgroundFromModel(model)
+        mBinding?.templateView?.setBackgroundFromModel(model)
+    }
+
+    private fun setBrushView() {
+        rasmContext = if (mBinding?.rvBrushMain?.isVisible == true) mBinding?.rvBrushMain?.rasmContext
+        else null
+
+        rasmContext?.let {
+            mBinding?.rvBrushMain?.rasmContext?.brushConfig = BrushesRepository(resources).get(Brush.Pen)
+            mBinding?.rvBrushMain?.rasmContext?.brushColor = Color.RED
+            mBinding?.rvBrushMain?.rasmContext?.rotationEnabled = true
+            mBinding?.rvBrushMain?.rasmContext?.setBackgroundColor(Color.TRANSPARENT)
+
+            mBinding?.rvBrushMain?.viewTreeObserver?.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    mBinding?.rvBrushMain?.viewTreeObserver?.removeOnGlobalLayoutListener(this)
+                    mBinding?.rvBrushMain?.resetTransformation()
+                }
+            })
+        }
+
     }
 
 }

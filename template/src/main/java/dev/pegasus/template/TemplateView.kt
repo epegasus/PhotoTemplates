@@ -208,6 +208,9 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
      */
     fun setImageResource(@DrawableRes imageId: Int) {
         imageDrawable = ContextCompat.getDrawable(context, imageId)
+        imageDrawable?.let {
+            imageAspectRatio = it.intrinsicWidth.toFloat() / it.intrinsicHeight.toFloat()
+        }
 
         coroutineScope.launch {
             updateUserImageRect()
@@ -234,17 +237,16 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
     }
 
     fun setImageDrawable(drawable: Drawable?) {
-        if (drawable == null) {
-            Log.e(TAG, "TemplateView: setImageDrawable: ", NullPointerException("Drawable is Null"))
-            return
-        }
-        imageDrawable = drawable
+        drawable?.let {
+            imageDrawable = it
+            imageAspectRatio = it.intrinsicWidth.toFloat() / it.intrinsicHeight.toFloat()
 
-        coroutineScope.launch {
-            updateUserImageRect()
-            dragValueX = 0f
-            dragValueY = 0f
-            invalidate()
+            coroutineScope.launch {
+                updateUserImageRect()
+                dragValueX = 0f
+                dragValueY = 0f
+                invalidate()
+            }
         }
     }
 
@@ -322,6 +324,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         }.join()
         Log.d(TAG, "setImageFixRectangle: is finished")
     }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
 
@@ -492,8 +495,7 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
                     scaleGestureDetector.onTouchEvent(it)
                     // Handle the two-finger rotation gesture
                     rotationGestureDetector.onTouchEvent(it)
-                }
-                else gestureDetector.onTouchEvent(it)
+                } else gestureDetector.onTouchEvent(it)
             }
             // Implement fling using VelocityTracker
             when (it.action) {
@@ -612,10 +614,18 @@ class TemplateView @JvmOverloads constructor(context: Context, attrs: AttributeS
         }
     })
 
+    fun getViewAsBitmap(): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        draw(canvas)
+        return bitmap
+    }
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         coroutineScope.cancel()
-        velocityTracker?.recycle()
+        // To release any resources taken from the velocity-tracker
+        velocityTracker?.clear()
         flingAnimator?.cancel()
     }
 

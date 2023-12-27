@@ -1,13 +1,19 @@
 <resources>
     <string name="app_name">Photo Templates</string>
     <string name="testing_imageview">Testing imageview</string>
-    <string name="change_background">change background</string>
+    <string name="change_background">Change Background</string>
     <string name="select_photo">Select Photo</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 
     <string name="type_something">Type Something</string>
-    <string name="add_sticker">add sticker</string>
+    <string name="sticker">Text</string>
     <string name="limit_reached">Character Limit Breached</string>
     <string name="templates_recyclerview">Templates Recyclerview</string>
+    <string name="draw">Draw</string>
+    <string name="template_view">Template View</string>
+    <string name="draw_view">Draw View</string>
+    <string name="txt_done">Done</string>
+    <string name="emoji">Emoji</string>
+    <string name="recycler_view_for_adding_and_show_all_added_text_stickers">recycler view for adding and show all added text stickers</string>
 </resources>
