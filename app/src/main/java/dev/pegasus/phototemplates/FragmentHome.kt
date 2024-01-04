@@ -48,9 +48,11 @@ class FragmentHome : Fragment() {
 
     // need a global indicator for sticker update
     private var isStickerUpdating: Boolean = false
+    private var isKeyboardOpened: Boolean = false
     private var newlyAddedTextSticker: TextSticker? = null
     // private var textBeforeUpdatingSticker: String? = null
     private val textManager by lazy { TextManager(globalContext) }
+    private var selectedStickerId: Int? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -123,7 +125,7 @@ class FragmentHome : Fragment() {
                 isStickerUpdating = false
 
                 when (binding?.stvHome?.stickerCount!! < 20) {
-                    true -> binding?.stvHome?.addSticker(newlyAddedTextSticker!!)
+                    true -> binding?.stvHome?.addSticker(newlyAddedTextSticker!!, isDuplicate)
                     false -> root.let { Snackbar.make(it, resources.getString(R.string.limit_reached), Snackbar.LENGTH_LONG).show() }
                 }
             }
@@ -173,26 +175,38 @@ class FragmentHome : Fragment() {
         binding?.mbAddText?.isVisible = !showingKeyboard
         binding?.ifvDoneTemplate?.isVisible = showingKeyboard
         binding?.ifvCloseTemplate?.isVisible = showingKeyboard
+        binding?.backgroundView?.isVisible = showingKeyboard
     }
 
     private val stickerListener = object : StickerView.OnStickerOperationListener {
 
         override fun onStickerAdded(sticker: Sticker) {
-            if (sticker is TextSticker) addItemRegretManager(sticker)
+            if (sticker is TextSticker) {
+                addItemRegretManager(sticker)
+                selectedStickerId = sticker.stickerId
+            }
         }
 
         override fun onStickerClicked(sticker: Sticker) {
             Log.d(TAG, "onStickerClicked: is called")
-            lifecycleScope.launch {
-                regretManagerList.forEachIndexed let@{ index, regretManager ->
-                    if (regretManager.getView() == sticker) {
-                        regretPosition = index
-                        return@let
+            val currentSticker = binding?.stvHome?.currentSticker
+            if (currentSticker is TextSticker) {
+                if (currentSticker.stickerId == selectedStickerId) return
+                selectedStickerId = currentSticker.stickerId
+                lifecycleScope.launch {
+                    regretManagerList.forEachIndexed let@{ index, regretManager ->
+                        if (regretManager.getView() == sticker) {
+                            regretPosition = index
+                            return@let
+                        }
+                    }
+                    val txt = regretManagerList[regretPosition].getPreviousText()
+                    if (txt == addTextString) binding?.etTypeTemplate?.setText("")
+                    else {
+                        binding?.etTypeTemplate?.setText(txt)
+                        binding?.etTypeTemplate?.setSelection(txt.length)
                     }
                 }
-                val txt = regretManagerList[regretPosition].getPreviousText()
-                binding?.etTypeTemplate?.setText(txt)
-                binding?.etTypeTemplate?.setSelection(txt.length)
             }
         }
 
@@ -260,6 +274,7 @@ class FragmentHome : Fragment() {
     private fun forceShowKeyboard() {
         val imm: InputMethodManager? = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager?
         imm?.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
+        isKeyboardOpened = true
     }
 
     private fun forceHideKeyboard() {
@@ -273,6 +288,7 @@ class FragmentHome : Fragment() {
 
     private fun hideKeyboard() {
         try {
+            isKeyboardOpened = false
             val inputMethodManager: InputMethodManager = context?.getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
             val view: IBinder? = activity?.findViewById<View?>(android.R.id.content)?.windowToken
             inputMethodManager.hideSoftInputFromWindow(view, 0)
