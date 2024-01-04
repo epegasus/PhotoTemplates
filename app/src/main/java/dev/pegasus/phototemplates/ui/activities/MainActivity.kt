@@ -107,7 +107,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main), 
                 val bitmap = rasmContext?.exportRasm()
                 bitmap?.let {
                     Log.d(TAG, "onCreate: received bitmap width: ${it.width} and height: ${it.height}")
-                    //templateView.getViewAsBitmap()
                 }
 
                 btnDone.visibility = View.GONE
@@ -274,7 +273,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main), 
                 RegretManager(
                     this@MainActivity,
                     object : RegretListener {
-                        override fun onDo(key: CaseType, value: Any?) {}
+                        override fun onDo(key: CaseType, value: Any?, regretType: Int) {}
                         override fun onCanDo(canUndo: Boolean, canRedo: Boolean) {}
                     },
                 )
@@ -312,11 +311,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main), 
                 }
             }
 
-            override fun onStickerDragFinished(sticker: Sticker) {
-                Log.d("TAG", "onStickerDragFinished")
-            }
-
-            override fun onStickerTouchedDown(sticker: Sticker, isUpdate: Boolean) {
+            override fun onStickerTouchedDown(sticker: Sticker, isUpdate: Boolean, isDuplicate: Boolean) {
                 if (!isUpdate) return
                 if (sticker is TextSticker) {
                     showTextBoxDialog(sticker.text)
@@ -324,14 +319,13 @@ class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main), 
                 Log.d("TAG", "onStickerTouchedDown")
             }
 
-            override fun onStickerZoomFinished(sticker: Sticker) {
-                Log.d("TAG", "onStickerZoomFinished")
-            }
-
-            override fun onStickerDoubleTapped(sticker: Sticker) {
-                Log.d("TAG", "onDoubleTapped: double tap will be with two click")
-            }
+            override fun onStickerDragFinished(sticker: Sticker) {}
+            override fun onStickerZoomFinished(sticker: Sticker) {}
+            override fun onStickerFlipped(sticker: Sticker) {}
+            override fun onStickerDoubleTapped(sticker: Sticker) {}
+            override fun onStickerUpdated(sticker: Sticker) {}
         }
+
     }
 
     override fun onItemClick(model: TemplateModel) {

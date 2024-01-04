@@ -21,9 +21,6 @@ public class StickerUtils {
     private static final String TAG = "StickerView";
 
     public static File saveImageToGallery(@NonNull File file, @NonNull Bitmap bmp) {
-        if (bmp == null) {
-            throw new IllegalArgumentException("bmp should not be null");
-        }
         try {
             FileOutputStream fos = new FileOutputStream(file);
             bmp.compress(Bitmap.CompressFormat.JPEG, 100, fos);

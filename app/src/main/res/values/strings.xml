@@ -16,4 +16,7 @@
     <string name="txt_done">Done</string>
     <string name="emoji">Emoji</string>
     <string name="recycler_view_for_adding_and_show_all_added_text_stickers">recycler view for adding and show all added text stickers</string>
+    <string name="go_to_template_activity">Go To Template Activity</string>
+    <string name="go_to_main_activity">Go to Main Activity</string>
+    <string name="add_text">Add Text</string>
 </resources>

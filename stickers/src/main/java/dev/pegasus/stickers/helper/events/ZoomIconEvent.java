@@ -8,7 +8,9 @@ import dev.pegasus.stickers.ui.StickerIconEvent;
 public class ZoomIconEvent implements StickerIconEvent {
 
     @Override
-    public void onActionDown(StickerView stickerView, MotionEvent event) {}
+    public void onActionDown(StickerView stickerView, MotionEvent event) {
+
+    }
 
     @Override
     public void onActionMove(StickerView stickerView, MotionEvent event) {

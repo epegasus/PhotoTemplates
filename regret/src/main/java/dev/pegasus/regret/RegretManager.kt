@@ -2,17 +2,22 @@ package dev.pegasus.regret
 
 import android.content.Context
 import android.graphics.Typeface
-import android.widget.TextView
 import androidx.core.content.ContextCompat
 import dev.pegasus.regret.enums.CaseType
 import dev.pegasus.regret.helper.Regret
 import dev.pegasus.regret.interfaces.RegretListener
 import dev.pegasus.stickers.TextSticker
+import dev.pegasus.stickers.ui.DrawableSticker
 
 class RegretManager(private val context: Context, private val regretListener: RegretListener) : RegretListener {
 
     private val regret = Regret(this)
     private var textSticker: TextSticker? = null
+    private var drawableSticker: DrawableSticker? = null
+
+    private var fontTypeArrayList = ArrayList<String>()
+    private var originalFontTypeArrayList = ArrayList<String>()
+    val fontTypeList: List<String> get() = fontTypeArrayList
 
     // Previous Settings
     private var previousText = ""
@@ -27,6 +32,10 @@ class RegretManager(private val context: Context, private val regretListener: Re
 
     fun setView(textSticker: TextSticker) {
         this.textSticker = textSticker
+    }
+
+    fun setView(drawableSticker: DrawableSticker) {
+        this.drawableSticker = drawableSticker
     }
 
     fun getView(): TextSticker? {
@@ -46,19 +55,27 @@ class RegretManager(private val context: Context, private val regretListener: Re
         }
     }
 
+    fun getPreviousText(): String = this.previousText
+
     /* ---------------------------------- TypeFace ---------------------------------- */
 
-    fun setPreviousTypeFace(previousTypeface: Typeface) {
+    fun setPreviousTypeFace(previousTypeface: Typeface, fontType: String) {
         this.previousTypeface = previousTypeface
+        fontTypeArrayList.add(fontType)
+        originalFontTypeArrayList.add(fontType)
     }
 
-    fun setNewTypeFace(newTypeface: Typeface) {
+    fun setNewTypeFace(newTypeface: Typeface, fontType: String) {
         previousTypeface?.let {
             if (!isUndoing) {
+                if (!canUndo())
+                    originalFontTypeArrayList.clear()
                 regret.add(CaseType.TYPEFACE, it, newTypeface)
+                fontTypeArrayList.add(fontType)
+                originalFontTypeArrayList.add(fontType)
                 //previousTypeface = newTypeface
             }
-        } ?: throw RuntimeException("Previous Typeface is required. Set it using 'setPreviousTypeFace()'")
+        } ?: throw NullPointerException("Previous Typeface is required. Set it using 'setPreviousTypeFace()'")
     }
 
     /* -------------------------------- Text Color ---------------------------------- */
@@ -93,10 +110,25 @@ class RegretManager(private val context: Context, private val regretListener: Re
     fun canUndo() = regret.canUndo()
     fun canRedo() = regret.canRedo()
 
-    override fun onDo(key: CaseType, value: Any?) {
+    /**
+     * @param key
+     * @param value
+     * @param regretType
+     *      0: Undo
+     *      1: Redo
+     */
+
+    override fun onDo(key: CaseType, value: Any?, regretType: Int) {
         when (key) {
             CaseType.TEXT -> textSticker?.text = value.toString()
-            CaseType.TYPEFACE -> textSticker?.setTypeface(value as Typeface?)
+            CaseType.TYPEFACE -> {
+                if (regretType == 0)
+                    fontTypeArrayList.removeLast()
+                else {
+                    fontTypeArrayList.add(originalFontTypeArrayList[fontTypeList.size - 1])
+                }
+                textSticker?.setTypeface(value as Typeface?)
+            }
             CaseType.TEXT_COLOR -> textSticker?.setTextColor(ContextCompat.getColor(context, value as Int))
         }
     }
@@ -104,5 +136,4 @@ class RegretManager(private val context: Context, private val regretListener: Re
     override fun onCanDo(canUndo: Boolean, canRedo: Boolean) {
         regretListener.onCanDo(canUndo, canRedo)
     }
-
 }
