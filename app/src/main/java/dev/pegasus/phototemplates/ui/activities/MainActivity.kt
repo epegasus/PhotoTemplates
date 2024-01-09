@@ -164,7 +164,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main), 
             drawableSticker?.let {
                 if (it.intrinsicWidth > 0 && it.intrinsicHeight > 0) {
                     val emojiSticker = DrawableSticker(it)
-                    mBinding?.stickerView?.addSticker(emojiSticker, false)
+                    mBinding?.stickerView?.addSticker(emojiSticker, null)
                 }
             }
         }
@@ -261,7 +261,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main), 
             override fun onGlobalLayout() {
                 mBinding?.stickerView?.viewTreeObserver!!.removeOnGlobalLayoutListener(this)
                 if (mBinding?.stickerView?.stickerCount!! < 20) {
-                    mBinding?.stickerView?.addSticker(sticker, false)
+                    mBinding?.stickerView?.addSticker(sticker, null)
                 } else mBinding?.root?.let { Snackbar.make(it, resources.getString(R.string.limit_reached), Snackbar.LENGTH_LONG).show() }
             }
         })

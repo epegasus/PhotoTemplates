@@ -1,21 +1,16 @@
 package dev.pegasus.phototemplates
 
-import android.app.Activity
-import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
-import android.os.IBinder
 import android.text.Editable
 import android.text.Layout
 import android.text.TextWatcher
 import android.util.Log
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.InputMethodManager
-import android.widget.EditText
 import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import dev.pegasus.phototemplates.databinding.FragmentHomeBinding
@@ -26,14 +21,13 @@ import dev.pegasus.regret.interfaces.RegretListener
 import dev.pegasus.stickers.StickerView
 import dev.pegasus.stickers.TextSticker
 import dev.pegasus.stickers.helper.Sticker
+import dev.pegasus.template.TemplateEditText
 import dev.pegasus.template.dataProviders.DpTemplates
 import dev.pegasus.template.utils.HelperUtils.TAG
 import dev.pegasus.template.utils.HelperUtils.isValidPosition
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-class FragmentHome : Fragment() {
+class FragmentHome : Fragment(), TemplateEditText.OnKeyboardSystemBackButtonClick {
 
     private val globalContext by lazy { binding!!.root.context }
 
@@ -50,7 +44,6 @@ class FragmentHome : Fragment() {
     private var isStickerUpdating: Boolean = false
     private var isKeyboardOpened: Boolean = false
     private var newlyAddedTextSticker: TextSticker? = null
-    // private var textBeforeUpdatingSticker: String? = null
     private val textManager by lazy { TextManager(globalContext) }
     private var selectedStickerId: Int? = null
 
@@ -75,6 +68,7 @@ class FragmentHome : Fragment() {
             mbAddText.setOnClickListener { onAddTextClick() }
             ifvCloseTemplate.setOnClickListener { onCancelClick() }
             ifvDoneTemplate.setOnClickListener { onDoneClick() }
+            etTypeTemplate.setOnBackButtonPressedListener(this@FragmentHome)
         }
 
     }
@@ -91,20 +85,21 @@ class FragmentHome : Fragment() {
 
     private fun onAddTextClick() {
         updateUI(true)
-        binding?.etTypeTemplate?.let { showKeyboard(it) }
+        showKeyboard()
         addSticker()
     }
 
-    private fun showKeyboard(editText: EditText) {
-        forceShowKeyboard()
-        editText.requestFocus()
+    private fun showKeyboard() {
+        isKeyboardOpened = true
+        binding?.etTypeTemplate?.showKeyboard()
+        binding?.etTypeTemplate?.requestFocus()
     }
 
-    private fun addSticker(newText: String = addTextString, isDuplicate: Boolean = false) {
+    private fun addSticker(newText: String = addTextString, stickerToBeDuplicated: Sticker? = null) {
         binding?.apply {
             etTypeTemplate.setText("")
 
-            if (isDuplicate) {
+            stickerToBeDuplicated?.let {
                 val txt = regretManagerList[regretPosition].getPreviousText()
                 etTypeTemplate.setText(txt)
                 etTypeTemplate.setSelection(txt.length)
@@ -114,6 +109,7 @@ class FragmentHome : Fragment() {
             if (currentSticker is TextSticker) {
                 if (currentSticker.text == addTextString) return
             }
+
             lifecycleScope.launch {
                 newlyAddedTextSticker = TextSticker(globalContext)
                 newlyAddedTextSticker!!.text = newText
@@ -125,7 +121,7 @@ class FragmentHome : Fragment() {
                 isStickerUpdating = false
 
                 when (binding?.stvHome?.stickerCount!! < 20) {
-                    true -> binding?.stvHome?.addSticker(newlyAddedTextSticker!!, isDuplicate)
+                    true -> binding?.stvHome?.addSticker(newlyAddedTextSticker!!, stickerToBeDuplicated)
                     false -> root.let { Snackbar.make(it, resources.getString(R.string.limit_reached), Snackbar.LENGTH_LONG).show() }
                 }
             }
@@ -134,7 +130,8 @@ class FragmentHome : Fragment() {
 
     private fun onCancelClick() {
         updateUI(false)
-        hideKeyboard()
+        binding?.etTypeTemplate?.hideKeyboard()
+        isKeyboardOpened = false
 
         val currentSticker = binding?.stvHome?.currentSticker
 
@@ -157,7 +154,9 @@ class FragmentHome : Fragment() {
 
     private fun onDoneClick() {
         updateUI(false)
-        hideKeyboard()
+        binding?.etTypeTemplate?.hideKeyboard()
+        isKeyboardOpened = false
+
         val currentSticker = binding?.stvHome?.currentSticker
         if (currentSticker is TextSticker) {
             val text = currentSticker.text
@@ -166,7 +165,6 @@ class FragmentHome : Fragment() {
             }
             lifecycleScope.launch {
                 textManager.applyNewText(currentSticker.text!!, binding?.stvHome!!, regretManagerList[regretPosition])
-                //regretManagerList[regretPosition].setView(currentSticker)
             }
         }
     }
@@ -211,8 +209,10 @@ class FragmentHome : Fragment() {
         }
 
         override fun onStickerDeleted(sticker: Sticker) {
-            hideKeyboard()
             updateUI(false)
+            binding?.etTypeTemplate?.hideKeyboard()
+            isKeyboardOpened = false
+
             if (regretManagerList.isNotEmpty() && regretManagerList.size > regretPosition) {
                 _regretManagerList.removeAt(regretPosition)
             }
@@ -225,10 +225,10 @@ class FragmentHome : Fragment() {
                 Log.d(TAG, "onStickerTouchedDown: sticker text: ${sticker.text}")
                 if (isUpdate) {
                     updateUI(true)
-                    binding?.etTypeTemplate?.let { showKeyboard(it) }
+                    showKeyboard()
                 }
                 if (isDuplicate) {
-                    addSticker(sticker.text.toString(), true)
+                    addSticker(sticker.text.toString(), sticker)
                 }
             }
         }
@@ -271,30 +271,8 @@ class FragmentHome : Fragment() {
         }
     }
 
-    private fun forceShowKeyboard() {
-        val imm: InputMethodManager? = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager?
-        imm?.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
-        isKeyboardOpened = true
-    }
-
-    private fun forceHideKeyboard() {
-        val inputMethodManager: InputMethodManager = context?.getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
-        var view: View? = requireActivity().currentFocus
-        if (view == null) {
-            view = View(activity)
-        }
-        inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
-    }
-
-    private fun hideKeyboard() {
-        try {
-            isKeyboardOpened = false
-            val inputMethodManager: InputMethodManager = context?.getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
-            val view: IBinder? = activity?.findViewById<View?>(android.R.id.content)?.windowToken
-            inputMethodManager.hideSoftInputFromWindow(view, 0)
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-        }
+    override fun onBackButtonPressed() {
+        onCancelClick()
     }
 
 }
