@@ -34,6 +34,7 @@ android {
     }
     buildFeatures {
         dataBinding = true
+        viewBinding = true
         // To get the buildConfig object of our main application mostly used in App level class
         buildConfig = true
     }
@@ -56,4 +57,8 @@ dependencies {
     implementation (libs.activity.ktx)
     // Koin for dependency injection
     implementation(libs.koin.android)
+
+    // navigation components
+    implementation(libs.navigation.fragment.ktx)
+    implementation(libs.navigation.ui.ktx)
 }

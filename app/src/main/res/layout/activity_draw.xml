@@ -35,7 +35,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/mtb_draw"
             app:layout_constraintBottom_toTopOf="@id/slider_Main"
-            app:srcCompat="@drawable/img_dummy"/>
+            app:srcCompat="@drawable/img_pic"/>
 
         <com.raed.rasmview.RasmView
             android:id="@+id/rv_brush_Main"

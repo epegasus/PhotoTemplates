@@ -34,7 +34,7 @@ class Regret(listener: RegretListener) {
      */
     fun undo() {
         val action = undoRedoList.undo()
-        updateDoListener(action)
+        updateDoListener(action, 0)
         updateCanDoListener()
     }
 
@@ -43,7 +43,7 @@ class Regret(listener: RegretListener) {
      */
     fun redo() {
         val action = undoRedoList.redo()
-        updateDoListener(action)
+        updateDoListener(action, 1)
         updateCanDoListener()
     }
 
@@ -89,11 +89,11 @@ class Regret(listener: RegretListener) {
         listener?.onCanDo(undoRedoList.canUndo(), undoRedoList.canRedo())
     }
 
-    private fun updateDoListener(action: Action?) {
+    private fun updateDoListener(action: Action?, regretType: Int) {
         if (listener != null) {
             val key = action!!.key
             val value = action.value
-            listener.onDo(key, value)
+            listener.onDo(key, value, regretType)
         }
     }
 }

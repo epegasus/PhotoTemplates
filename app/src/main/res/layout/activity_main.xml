@@ -38,26 +38,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/mtb_main" />
 
-        <!--<dev.pegasus.template.ZoomWithFlingView
-            android:id="@+id/zoomWithFlingView"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/view"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <dev.pegasus.template.ZoomWithVelocityTrackerView
-            android:id="@+id/zoomWithVelocityTracker"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/view"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />-->
-
         <dev.pegasus.stickers.StickerView
             android:id="@+id/stickerView"
             android:layout_width="0dp"
@@ -156,8 +136,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"/>
-
-
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

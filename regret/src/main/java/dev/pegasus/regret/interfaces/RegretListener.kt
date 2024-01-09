@@ -9,7 +9,7 @@ interface RegretListener {
      * @param key   the key to identify the returned value
      * @param value the value associated with the key
      */
-    fun onDo(key: CaseType, value: Any?)
+    fun onDo(key: CaseType, value: Any?, regretType: Int)
 
     /**
      * onCanDo() updates for every call to [.undo], [.redo] or [.add].

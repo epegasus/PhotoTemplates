@@ -14,7 +14,7 @@ public class RotateIconEvent implements StickerIconEvent {
 
     @Override
     public void onActionMove(StickerView stickerView, MotionEvent event) {
-        //stickerView.rotateCurrentSticker(event);
+        stickerView.rotateCurrentSticker(event);
     }
 
     @Override
